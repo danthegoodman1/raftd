@@ -49,6 +49,7 @@ func StartHTTPServer() *HTTPServer {
 
 	// technical - no auth
 	s.Echo.GET("/hc", s.HealthCheck)
+	s.Echo.GET("/rc", s.ReadinessCheck)
 
 	s.Echo.Listener = listener
 	go func() {
@@ -86,6 +87,10 @@ func ValidateRequest(c echo.Context, s interface{}) error {
 }
 
 func (*HTTPServer) HealthCheck(c echo.Context) error {
+	return c.String(http.StatusOK, "ok")
+}
+
+func (*HTTPServer) ReadinessCheck(c echo.Context) error {
 	return c.String(http.StatusOK, "ok")
 }
 
