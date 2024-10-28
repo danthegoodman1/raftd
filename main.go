@@ -26,12 +26,14 @@ func main() {
 		err := observability.StartInternalHTTPServer(utils.MetricsAPIListenAddr, prometheusReporter)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal().Err(err).Msg("internal server couldn't start")
+			return
 		}
 	}()
 
 	raftManager, err := raft.NewRaftManager()
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to create new raft manager")
+		return
 	}
 
 	httpServer := http_server.StartHTTPServer(raftManager)
@@ -47,5 +49,11 @@ func main() {
 		logger.Error().Err(err).Msg("failed to shutdown HTTP server")
 	} else {
 		logger.Info().Msg("successfully shutdown HTTP server")
+	}
+
+	err = raftManager.Shutdown()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("error shutting down raft manager")
+		return
 	}
 }
