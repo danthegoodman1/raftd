@@ -46,9 +46,9 @@ And you may optionally add the following endpoints
 
 Snapshots are only used when a new node joins the cluster, or a replica is sufficiently far behind that it cannot catch up purely via the log.
 
-While `PrepareSnapshot` is called on a regular interval, `SaveSnapshot` is only called when data needs to be streamed to another machine, so it is acceptable to do this on-demand rather than preparing the whole snapshot and consuming significant extra disk.
+Snapshots are only generated when data needs to be streamed to another machine, so it is acceptable to do this on-demand rather than preparing the whole snapshot and consuming significant extra disk.
 
-`PrepareSnapshot` simply returns a reference to which a snapshot can be generated. For example, you might return a timestamp that can be later used to generate a point-in-time KV backup ([e.g. the `since` value for badger](https://pkg.go.dev/github.com/dgraph-io/badger/v4#DB.Backup)). This should do no work in terms of actually creating or serializing a snapshot, just prepare the system for it.
+`PrepareSnapshot` simply returns a reference to which a snapshot can be generated. For example, you might return a timestamp that can be later used to generate a point-in-time KV backup ([e.g. the `since` value for badger](https://pkg.go.dev/github.com/dgraph-io/badger/v4#DB.Backup)). This should do no work in terms of actually creating or serializing a snapshot, just prepare the system for it. This value is only kept in memory, and called right before `SaveSnapshot`.
 
 Because the application code represents a Raft snapshot itself (a committed point in time that is compacted), automatic snapshotting only periodically calls `PrepareSnapshot`. This may be a file reference, a timestamp that can be used to create a full snapshot, etc.
 
@@ -60,7 +60,7 @@ For example, if `SaveSnapshot` was called with the same parameters (return from 
 
 `RecoverFromSnapshot` will receive a request where the body is the snapshot to restore from. This will have a known content-length, but could be quite a large request body. This should be streamed directly in for recovery as if you were reading a file from disk. raftd will download this snapshot to disk from the remote replica before making a request up to your application, so you never have to worry about partial snapshots due to network conditions being applied. See other tips and tricks for different scenarios in [Tips and Tricks](#tips-and-tricks).
 
-It is recommended to leave automatic snapshotting enabled (which again, will only call `PrepareSnapshot`), with a reasonable snapshot frequency (e.g. every 1,000-10,000 updates, depending on update frequency, how large records are, and how resource-intensive a backup is).
+It is recommended to leave automatic snapshotting enabled (which again, will only call `PrepareSnapshot`), with a reasonable snapshot frequency (e.g. every 1,000-10,000 updates, depending on update frequency, how large records are, and how resource-intensive a backup is). raftd will simply store a small bit of metadata on disk about the state of the RSM for each snapshot, and the application code will not be called for this.
 
 **It is expected that snapshots can be created concurrently with other update operations.**
 
