@@ -13,7 +13,7 @@ It manages all the complicated parts of raft like durable log management, log co
     * [Reading and writing via the raftd HTTP API](#reading-and-writing-via-the-raftd-http-api)
   * [Tips and Tricks](#tips-and-tricks)
     * [Use an HTTP/2 server](#use-an-http2-server)
-    * [Keep a single Raft group small](#keep-a-single-raft-group-small)
+    * [Keep Raft group data small](#keep-raft-group-data-small)
     * [Controlled SQLite WAL for instant snapshots](#controlled-sqlite-wal-for-instant-snapshots)
 <!-- TOC -->
 
@@ -54,7 +54,7 @@ Because the application code represents a Raft snapshot itself (a committed poin
 
 **It's required that the results of `PrepareSnapshot` can be passed to `SaveSnapshot` to deterministically create snapshots.**
 
-For example, if `SaveSnapshot` was called with the same parameters (return from `PrepareShapshot`) 1,000 times, each generated snapshot should be byte-for-byte the same.
+For example, if `SaveSnapshot` was called with the same parameters (return from `PrepareShapshot`) 1,000 times, each generated snapshot should be byte-for-byte the same. Multiple `PrepareSnapshot` values will not be stored, so you can assume that if `PrepareSnapshot` is called, the previous return value will never be used again.
 
 `SaveSnapshot` stream the snapshot to a remote machine. Because this file size may unknown at request time (e.g. you stream the backup creation directly to the HTTP response body), it is expected that this may be a streaming (HTTP2) or chunked (HTTP/1.1) response (no content-length response header). The raftd client will automatically handle this, so this should be used when possible to speed up snapshot creation.
 
@@ -82,16 +82,22 @@ HTTP/2 (h2 or h2c) is wildly faster than HTTP/1.1. The raftd client automaticall
 
 If you are going to have a massive database (100 GB+), you should be breaking it up into multiple Raft groups. For example, CockroachDB partitions after 512MB by default.
 
+### Consider non-deterministic actions
+
+If you have an instruction in the update record, for example `now()` in a SQL statement, consider that this will have different results when applied to different replicas, and thus break Raft's guarantees.
+
+You should instead avoid non-deterministic actions in the update statements, and instead apply them before you save the data to Raft (e.g. generating the timestamp in your code, rather than in SQL).
+
 ### Controlled SQLite WAL for instant snapshots
 
 Taking inspiration from [rqlite's new snapshotting approach](https://philipotoole.com/building-rqlite-9-0-cutting-disk-usage-by-half/#:~:text=New%20Snapshotting%20approach), if you are using SQLite as the storage engine in your application, we can modify the WAL checkpointing logic to make snapshotting instantaneous.
 
 Go ahead and look at that post, but the gist of it is:
 1. The DB file serves as the snapshot
-2. The WAL only checkpoints when we create a snaphot (and never before)
-3. Snapshotting can just return a reference to a (node, db file) pair
-4. RecoverFromSnapshot reads this from the request body, asks the remote node for the DB file, and streams it to local disk
-
-Because this is a bit of a hack, you'd have to implement an extra file-streaming endpoint so that when you receive a RecoverFromSnapshot request, you expect to take in a remote node that should be restored from, and you can request the file from that node, using that to recover your local SQLite file.
+2. The WAL only checkpoints when we call `PrepareSnapshot` (and never before)
+3. `SaveSnapshot` can just return the DB file content (not the WAL)
+4. `RecoverFromSnapshot` reads this from the request body, asks the remote node for the DB file, and streams it to local disk
 
 It is wise to set automatic snapshotting on an interval (e.g. every 1,000-10,000 records depending on update frequency) to reduce how long recovery will still take.
+
+This could be taken further by implementing a custom Raft log provider that uses the WAL as the log (using a custom WAL VFS), but that's not currently exposed (or suggested). However this could open it up to allowing for non-deterministic commands (e.g. `now()`) in SQL queries because the log would take data after the query executes, not before (e.g. using the SQL statements as the saved records).
