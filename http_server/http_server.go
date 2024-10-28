@@ -51,9 +51,13 @@ func StartHTTPServer(manager *raft.RaftManager) *HTTPServer {
 	s.Echo.Validator = &CustomValidator{validator: validator.New()}
 	s.Echo.HTTPErrorHandler = customHTTPErrorHandler
 
-	// technical - no auth
 	s.Echo.GET("/hc", s.HealthCheck)
 	s.Echo.GET("/rc", s.ReadinessCheck)
+
+	// todo write record
+	// todo read record
+	// todo request snapshot
+	// todo group management
 
 	s.Echo.Listener = listener
 	go func() {

@@ -35,12 +35,15 @@ func NewRaftManager() (*RaftManager, error) {
 		return nil, fmt.Errorf("error parsing application url: %w", err)
 	}
 
+	// TODO poll application url to see if it's ready
+
+	// TODO allow customization of configuration options (esp snapshot entries)
 	rc := config.Config{
 		ReplicaID:          utils.NodeID,
 		ElectionRTT:        10,
 		HeartbeatRTT:       1,
 		CheckQuorum:        true,
-		SnapshotEntries:    10,
+		SnapshotEntries:    1000,
 		CompactionOverhead: 5,
 	}
 	datadir := filepath.Join("_raft", fmt.Sprintf("node%d", utils.NodeID))
@@ -60,7 +63,7 @@ func NewRaftManager() (*RaftManager, error) {
 	for _, peerPair := range strings.Split(utils.RaftPeers, ",") {
 		idAddrPair := strings.SplitN(peerPair, "=", 2)
 		if len(idAddrPair) != 2 {
-			return nil, fmt.Errorf("invalid peer pair '%s', should be in the format nodeID=addr: %w", ErrInvalidPeer)
+			return nil, fmt.Errorf("invalid peer pair '%s', should be in the format nodeID=addr: %w", peerPair, ErrInvalidPeer)
 		}
 
 		nodeID, err := strconv.ParseInt(idAddrPair[0], 10, 64)
