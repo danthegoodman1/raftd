@@ -2,7 +2,20 @@
 
 Multi-group Raft as a daemon - build anything in any language on top of high performance multi-group Raft.
 
-It manages all of the complicated parts of raft like durable log management, log compaction, snapshotting and recovery, and 
+It manages all the complicated parts of raft like durable log management, log compaction, snapshotting and recovery, and 
+
+<!-- TOC -->
+* [raftd](#raftd)
+  * [Integrating](#integrating)
+    * [Running it](#running-it)
+    * [Building the API](#building-the-api)
+    * [Snapshots](#snapshots)
+    * [Reading and writing via the raftd HTTP API](#reading-and-writing-via-the-raftd-http-api)
+  * [Tips and Tricks](#tips-and-tricks)
+    * [Use an HTTP/2 server](#use-an-http2-server)
+    * [Keep a single Raft group small](#keep-a-single-raft-group-small)
+    * [Controlled SQLite WAL for instant snapshots](#controlled-sqlite-wal-for-instant-snapshots)
+<!-- TOC -->
 
 ## Integrating
 
@@ -33,13 +46,21 @@ And you may optionally add the following endpoints
 
 Snapshots are only used when a new node joins the cluster, or a replica is sufficiently far behind that it cannot catch up purely via the log.
 
-PrepareSnapshot simply returns an in-memory record for a point in time at which a snapshot can be saved. For example it might call `fork`, or simply return `{}` if your database can already perform backups concurrently with processing other operations. This should do no work in terms of actually creating serializing a snapshot, just prepare the system for it.
+While `PrepareSnapshot` is called on a regular interval, `SaveSnapshot` is only called when data needs to be streamed to another machine, so it is acceptable to do this on-demand rather than preparing the whole snapshot and consuming significant extra disk.
 
-SaveSnapshot will actually return a stream of data that is the snapshot. Because this file size may not be known at request time (e.g. you stream the backup creation directly to the HTTP response body), it is expected that this will be a streaming (HTTP2) or chunked (HTTP/1.1) response (no content-length response header). The raftd client will automatically handle this, so this should be used when possible to speed up snapshot creation.
+`PrepareSnapshot` simply returns a reference to which a snapshot can be generated. For example, you might return a timestamp that can be later used to generate a point-in-time KV backup ([e.g. the `since` value for badger](https://pkg.go.dev/github.com/dgraph-io/badger/v4#DB.Backup)). This should do no work in terms of actually creating or serializing a snapshot, just prepare the system for it.
 
-RecoverFromSnapshots will receive a request where the body is the snapshot to restore from. This will have a known content-length, but could be quite a large request body. If possible, this should be streamed directly in for recovery. See other tips and tricks for different scenarios in Tips and Tricks
+Because the application code represents a Raft snapshot itself (a committed point in time that is compacted), automatic snapshotting only periodically calls `PrepareSnapshot`. This may be a file reference, a timestamp that can be used to create a full snapshot, etc.
 
-It is recommended to leave automatic snapshotting enabled, with a reasonable snapshot frequency (e.g. every 1,000-10,000 updates, depending on update frequency and how resource-intensive a backup is).
+**It's required that the results of `PrepareSnapshot` can be passed to `SaveSnapshot` to deterministically create snapshots.**
+
+For example, if `SaveSnapshot` was called with the same parameters (return from `PrepareShapshot`) 1,000 times, each generated snapshot should be byte-for-byte the same.
+
+`SaveSnapshot` stream the snapshot to a remote machine. Because this file size may unknown at request time (e.g. you stream the backup creation directly to the HTTP response body), it is expected that this may be a streaming (HTTP2) or chunked (HTTP/1.1) response (no content-length response header). The raftd client will automatically handle this, so this should be used when possible to speed up snapshot creation.
+
+`RecoverFromSnapshot` will receive a request where the body is the snapshot to restore from. This will have a known content-length, but could be quite a large request body. This should be streamed directly in for recovery as if you were reading a file from disk. raftd will download this snapshot to disk from the remote replica before making a request up to your application, so you never have to worry about partial snapshots due to network conditions being applied. See other tips and tricks for different scenarios in [Tips and Tricks](#tips-and-tricks).
+
+It is recommended to leave automatic snapshotting enabled (which again, will only call `PrepareSnapshot`), with a reasonable snapshot frequency (e.g. every 1,000-10,000 updates, depending on update frequency, how large records are, and how resource-intensive a backup is).
 
 **It is expected that snapshots can be created concurrently with other update operations.**
 
@@ -52,6 +73,14 @@ In order to write (update), it MUST go through Raft. And in order to do that, we
 Even if your local instance is the leader and can process the write, it MUST submit it through raftd. raftd will call up to your application once it has reached consensus for that write to persist it.
 
 ## Tips and Tricks
+
+### Use an HTTP/2 server
+
+HTTP/2 (h2 or h2c) is wildly faster than HTTP/1.1. The raftd client automatically uses HTTP/2 when possible, including cleartext (http://).
+
+### Keep Raft group data small
+
+If you are going to have a massive database (100 GB+), you should be breaking it up into multiple Raft groups. For example, CockroachDB partitions after 512MB by default.
 
 ### Controlled SQLite WAL for instant snapshots
 
