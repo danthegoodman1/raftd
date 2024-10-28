@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/danthegoodman1/raftd/observability"
 	"github.com/danthegoodman1/raftd/utils"
-	"github.com/joho/godotenv"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,13 +18,6 @@ import (
 var logger = gologger.NewLogger()
 
 func main() {
-	if _, err := os.Stat(".env"); err == nil {
-		err = godotenv.Load()
-		if err != nil {
-			logger.Error().Err(err).Msg("error loading .env file, exiting")
-			os.Exit(1)
-		}
-	}
 	logger.Debug().Msg("starting raftd")
 
 	prometheusReporter := observability.NewPrometheusReporter()

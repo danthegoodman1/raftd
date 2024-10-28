@@ -6,7 +6,12 @@ var (
 	Env                  = os.Getenv("ENV")
 	TracingServiceName   = os.Getenv("TRACING_SERVICE_NAME")
 	OLTPEndpoint         = os.Getenv("OLTP_ENDPOINT")
-	MetricsAPIListenAddr = GetEnvOrDefault("METRICS_API_ADDR", ":8042")
-	HTTPPort             = GetEnvOrDefault("HTTP_PORT", "8080")
-	ApplicationURL       = os.Getenv("APP_URL") // where the application can be reached, required
+	HTTPListenAddr       = GetEnvOrDefault("HTTP_LISTEN_ADDR", ":9090")
+	RaftListenAddr       = GetEnvOrDefault("RAFT_LISTEN_ADDR", ":9091")
+	MetricsAPIListenAddr = GetEnvOrDefault("METRICS_LISTEN_ADDR", ":9092")
+
+	RaftPeers = os.Getenv("RAFT_PEERS") // csv of id=aadr pairs like 1=localhost:6000,2=localhost:6001,3=localhost:6002
+
+	ApplicationURL = GetEnvOrDefault("APP_URL", "http://localhost:8080") // where the application can be reached, required
+	NodeID         = uint64(GetEnvOrDefaultInt("NODE_ID", 0))
 )

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/danthegoodman1/raftd/raft"
 	"net"
 	"net/http"
 	"os"
@@ -21,15 +22,16 @@ import (
 var logger = gologger.NewLogger()
 
 type HTTPServer struct {
-	Echo *echo.Echo
+	Echo    *echo.Echo
+	manager *raft.RaftManager
 }
 
 type CustomValidator struct {
 	validator *validator.Validate
 }
 
-func StartHTTPServer() *HTTPServer {
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", utils.HTTPPort))
+func StartHTTPServer(manager *raft.RaftManager) *HTTPServer {
+	listener, err := net.Listen("tcp", utils.HTTPListenAddr)
 	if err != nil {
 		logger.Error().Err(err).Msg("error creating tcp listener, exiting")
 		os.Exit(1)
@@ -40,6 +42,8 @@ func StartHTTPServer() *HTTPServer {
 	s.Echo.HideBanner = true
 	s.Echo.HidePort = true
 	s.Echo.JSONSerializer = &utils.NoEscapeJSONSerializer{}
+
+	s.manager = manager
 
 	s.Echo.Use(CreateReqContext)
 	s.Echo.Use(LoggerMiddleware)
