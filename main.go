@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/danthegoodman1/raftd/observability"
+	"github.com/danthegoodman1/raftd/raft"
 	"github.com/danthegoodman1/raftd/utils"
 	"net/http"
 	"os"
@@ -24,12 +25,16 @@ func main() {
 	go func() {
 		err := observability.StartInternalHTTPServer(utils.MetricsAPIListenAddr, prometheusReporter)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error().Err(err).Msg("internal server couldn't start")
-			os.Exit(1)
+			logger.Fatal().Err(err).Msg("internal server couldn't start")
 		}
 	}()
 
-	httpServer := http_server.StartHTTPServer()
+	raftManager, err := raft.NewRaftManager()
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to create new raft manager")
+	}
+
+	httpServer := http_server.StartHTTPServer(raftManager)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
