@@ -1,6 +1,9 @@
 package raft
 
-import "github.com/lni/dragonboat/v4/statemachine"
+import (
+	"github.com/lni/dragonboat/v4/statemachine"
+	"io"
+)
 
 type (
 	OnDiskStateMachine struct {
