@@ -39,6 +39,10 @@ SaveSnapshot will actually return a stream of data that is the snapshot. Because
 
 RecoverFromSnapshots will receive a request where the body is the snapshot to restore from. This will have a known content-length, but could be quite a large request body. If possible, this should be streamed directly in for recovery. See other tips and tricks for different scenarios in Tips and Tricks
 
+It is recommended to leave automatic snapshotting enabled, with a reasonable snapshot frequency (e.g. every 1,000-10,000 updates, depending on update frequency and how resource-intensive a backup is).
+
+**It is expected that snapshots can be created concurrently with other update operations.**
+
 ### Reading and writing via the raftd HTTP API
 
 You may see the term "update" referred to in place of writes. Update is the Raft protocol-specific term used for mutating data. 
@@ -59,4 +63,6 @@ Go ahead and look at that post, but the gist of it is:
 3. Snapshotting can just return a reference to a (node, db file) pair
 4. RecoverFromSnapshot reads this from the request body, asks the remote node for the DB file, and streams it to local disk
 
-Because this is a bit of a hack, you'd have to implement an extra file-streaming endpoint so that when you receive a RecoverFromSnapshot request, you expect to take in a remote node that should be restored from, and you can request the file from that node, using that to recover your local SQLite file
+Because this is a bit of a hack, you'd have to implement an extra file-streaming endpoint so that when you receive a RecoverFromSnapshot request, you expect to take in a remote node that should be restored from, and you can request the file from that node, using that to recover your local SQLite file.
+
+It is wise to set automatic snapshotting on an interval (e.g. every 1,000-10,000 records depending on update frequency) to reduce how long recovery will still take.
