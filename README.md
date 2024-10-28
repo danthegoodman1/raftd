@@ -49,13 +49,14 @@ Even if your local instance is the leader and can process the write, it MUST sub
 
 ## Tips and Tricks
 
-### Controlled SQLite WAL for instant snapshots - WIP
-
-WIP https://github.com/lni/dragonboat/issues/375
+### Controlled SQLite WAL for instant snapshots
 
 Taking inspiration from [rqlite's new snapshotting approach](https://philipotoole.com/building-rqlite-9-0-cutting-disk-usage-by-half/#:~:text=New%20Snapshotting%20approach), if you are using SQLite as the storage engine in your application, we can modify the WAL checkpointing logic to make snapshotting instantaneous.
 
 Go ahead and look at that post, but the gist of it is:
 1. The DB file serves as the snapshot
 2. The WAL only checkpoints when we create a snaphot (and never before)
-3. Snapshotting can just return a reference to the WAL, rather than
+3. Snapshotting can just return a reference to a (node, db file) pair
+4. RecoverFromSnapshot reads this from the request body, asks the remote node for the DB file, and streams it to local disk
+
+Because this is a bit of a hack, you'd have to implement an extra file-streaming endpoint so that when you receive a RecoverFromSnapshot request, you expect to take in a remote node that should be restored from, and you can request the file from that node, using that to recover your local SQLite file
