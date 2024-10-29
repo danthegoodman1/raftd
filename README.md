@@ -55,12 +55,13 @@ All requests are POST requests. All endpoints receive the following headers:
 - `raftd-replica-id` - The replica ID as a string
 
 #### `/LastLogIndex`
-
 Returns the index of the last log entry that has been persisted.
 
-Request body: Empty
+**Request body:**
 
-Response body:
+Empty
+
+**Response body:**
 ```json
 {
   "LastLogIndex": 123 // uint64
@@ -68,10 +69,9 @@ Response body:
 ```
 
 #### `/UpdateEntries`
-
 Update one or more entries in persistent storage.
 
-Request body:
+**Request body:**
 ```json
 {
   "Entries": [
@@ -83,7 +83,7 @@ Request body:
 }
 ```
 
-Response body:
+**Response body:**
 ```json
 {
   "Results": [
@@ -94,44 +94,42 @@ Response body:
 ```
 
 #### `/Read`
-
 Read data based on some payload, called for linearizable reads.
 
-Request body: Any JSON payload
-
-Response body: Any JSON payload (will be returned directly to caller)
+**Request body:** Any JSON payload
+**Response body:** Any JSON payload (will be returned directly to caller)
 
 #### `/PrepareSnapshot`
-
 Called periodically to prepare for potential snapshot creation. See [Snapshots](#snapshots).
 
-Request body: Empty
+**Request body:**
 
-Response body: Any JSON payload that can be used later by `/SaveSnapshot`
+Empty
+
+**Response body:** Any JSON payload that can be used later by `/SaveSnapshot`
 
 #### `/SaveSnapshot`
-
 Generate and stream a snapshot based on previous `/PrepareSnapshot` result. See [Snapshots](#snapshots).
 
-Request body: The JSON payload returned from `/PrepareSnapshot`
+**Request body:** The JSON payload returned from `/PrepareSnapshot`
 
-Response body: Stream of snapshot data (no specific format required)
+**Response body:** Stream of snapshot data (no specific format required)
 
 #### `/RecoverFromSnapshot`
-
 Recover from a streamed snapshot. See [Snapshots](#snapshots).
 
-Request body: Stream of snapshot data (matching format from `/SaveSnapshot`)
+**Request body:** Stream of snapshot data (matching format from `/SaveSnapshot`)
 
-Response body: Empty response with success status code
+**Response body:** Empty response with success status code
 
 #### `/Sync` (Optional)
-
 Called after updates if `RAFT_SYNC=1`. See optimization notes above.
 
-Request body: Empty
+**Request body:**
 
-Response body: Empty response with success status code
+Empty
+
+**Response body:** Empty response with success status code
 
 ### Snapshots
 
