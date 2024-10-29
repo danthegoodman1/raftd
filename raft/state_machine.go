@@ -15,13 +15,17 @@ import (
 
 type (
 	OnDiskStateMachine struct {
-		APPUrl *url.URL
+		APPUrl    *url.URL
+		shardID   uint64
+		replicaID uint64
 	}
 )
 
 func createStateMachine(shardID, replicaID uint64, appURL *url.URL) statemachine.IOnDiskStateMachine {
 	return &OnDiskStateMachine{
-		APPUrl: appURL,
+		shardID:   shardID,
+		replicaID: replicaID,
+		APPUrl:    appURL,
 	}
 }
 
@@ -31,7 +35,7 @@ var (
 
 const (
 	timeout         = time.Second // todo make customizable
-	snapshotTimeout = time.Minute
+	snapshotTimeout = time.Minute // todo make customizable
 )
 
 func genHighStatusCodeError(statusCode int, body io.Reader) error {
@@ -46,7 +50,7 @@ func genHighStatusCodeError(statusCode int, body io.Reader) error {
 func doReqWithContext[T any](ctx context.Context, url string, body io.Reader) (T, error) {
 	var defaultResponse T
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, body)
 	if err != nil {
 		return defaultResponse, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
