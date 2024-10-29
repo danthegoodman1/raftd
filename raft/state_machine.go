@@ -264,7 +264,8 @@ func (o *OnDiskStateMachine) RecoverFromSnapshot(reader io.Reader, i <-chan stru
 }
 
 func (o *OnDiskStateMachine) Close() error {
+	// We do nothing here, since we want to force the application to be resilient to crashes
 	o.logger.Info().Msg("calling Close")
-	// TODO implement me
-	panic("implement me")
+	o.closed = true
+	return nil
 }
