@@ -14,12 +14,14 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 )
 
 type (
 	RaftManager struct {
 		nodeHost *dragonboat.NodeHost
 		logger   zerolog.Logger
+		Ready    *atomic.Uint64
 	}
 )
 
@@ -27,7 +29,7 @@ var (
 	ErrInvalidPeer = errors.New("invalid peer")
 )
 
-func NewRaftManager() (*RaftManager, error) {
+func NewRaftManager(readyPtr *atomic.Uint64) (*RaftManager, error) {
 	logger := gologger.NewLogger().With().Str("Service", "RaftManager").Logger()
 	// validate the application url
 	_, err := url.Parse(utils.ApplicationURL)
@@ -36,6 +38,7 @@ func NewRaftManager() (*RaftManager, error) {
 	}
 
 	// TODO poll application url to see if it's ready
+	readyPtr.Store(1)
 
 	// TODO allow customization of configuration options (esp snapshot entries)
 	rc := config.Config{
@@ -79,7 +82,7 @@ func NewRaftManager() (*RaftManager, error) {
 	}
 
 	err = nh.StartOnDiskReplica(raftPeers, false, func(shardID uint64, replicaID uint64) statemachine.IOnDiskStateMachine {
-		return createStateMachine(shardID, replicaID, logger)
+		return createStateMachine(shardID, replicaID, logger, readyPtr)
 	}, rc)
 	if err != nil {
 		return nil, fmt.Errorf("error in StartOnDiskCluster: %w", err)
@@ -88,6 +91,7 @@ func NewRaftManager() (*RaftManager, error) {
 	rm := &RaftManager{
 		nodeHost: nh,
 		logger:   logger,
+		Ready:    readyPtr,
 	}
 
 	return rm, nil

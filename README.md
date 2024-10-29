@@ -159,8 +159,10 @@ You can monitor raftd at `/hc` (health check) and `/rc` (readiness check) endpoi
 
 You can monitor these both automatically (e.g. kubernetes monitors), as well as with your app. Specifically, monitoring
 the `/rc` endpoint with your app after you've already returned a `200` response from your `/Ready` endpoint will let you
-know if raftd shut down for any reason. It will return a `500` with the body `closed`, and it will not return until restarted.
+know if raftd shut down for any reason. It will return a `500` with the body `shut down`, and it will not return until restarted.
 In this case, you should crash your application.
+
+You can see the various readiness states in the `ReadinessCheck` function in [http_server.go](http_server/http_server.go).
 
 # Snapshots
 

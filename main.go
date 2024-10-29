@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -30,13 +31,16 @@ func main() {
 		}
 	}()
 
-	raftManager, err := raft.NewRaftManager()
+	readyPtr := &atomic.Uint64{}
+	readyPtr.Store(0)
+
+	raftManager, err := raft.NewRaftManager(readyPtr)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to create new raft manager")
 		return
 	}
 
-	httpServer := http_server.StartHTTPServer(raftManager)
+	httpServer := http_server.StartHTTPServer(readyPtr, raftManager)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)

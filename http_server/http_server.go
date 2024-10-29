@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/danthegoodman1/raftd/gologger"
@@ -24,20 +25,22 @@ var logger = gologger.NewLogger().With().Str("Service", "HTTPServer").Logger()
 type HTTPServer struct {
 	Echo    *echo.Echo
 	manager *raft.RaftManager
+	Ready   *atomic.Uint64
 }
 
 type CustomValidator struct {
 	validator *validator.Validate
 }
 
-func StartHTTPServer(manager *raft.RaftManager) *HTTPServer {
+func StartHTTPServer(readyPtr *atomic.Uint64, manager *raft.RaftManager) *HTTPServer {
 	listener, err := net.Listen("tcp", utils.HTTPListenAddr)
 	if err != nil {
 		logger.Error().Err(err).Msg("error creating tcp listener, exiting")
 		os.Exit(1)
 	}
 	s := &HTTPServer{
-		Echo: echo.New(),
+		Echo:  echo.New(),
+		Ready: readyPtr,
 	}
 	s.Echo.HideBanner = true
 	s.Echo.HidePort = true
@@ -95,12 +98,23 @@ func ValidateRequest(c echo.Context, s interface{}) error {
 	return nil
 }
 
-func (*HTTPServer) HealthCheck(c echo.Context) error {
+func (s *HTTPServer) HealthCheck(c echo.Context) error {
 	return c.String(http.StatusOK, "ok")
 }
 
-func (*HTTPServer) ReadinessCheck(c echo.Context) error {
-	return c.String(http.StatusOK, "ok")
+func (s *HTTPServer) ReadinessCheck(c echo.Context) error {
+	readyCode := s.Ready.Load()
+	switch readyCode {
+	case 0:
+		return c.String(http.StatusInternalServerError, "not ready")
+	case 1:
+		return c.String(http.StatusOK, "ready")
+	case 2:
+		return c.String(http.StatusOK, "shut down")
+	default:
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("unknown status code %d", readyCode))
+	}
+
 }
 
 func (s *HTTPServer) Shutdown(ctx context.Context) error {

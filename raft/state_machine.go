@@ -12,6 +12,7 @@ import (
 	"github.com/samber/lo"
 	"io"
 	"net/http"
+	"sync/atomic"
 	"time"
 )
 
@@ -23,10 +24,11 @@ type (
 		shouldSync bool
 		closed     bool
 		logger     zerolog.Logger
+		readyPtr   *atomic.Uint64
 	}
 )
 
-func createStateMachine(shardID, replicaID uint64, logger zerolog.Logger) statemachine.IOnDiskStateMachine {
+func createStateMachine(shardID, replicaID uint64, logger zerolog.Logger, readyPtr *atomic.Uint64) statemachine.IOnDiskStateMachine {
 	childLogger := logger.With().Uint64("NodeID", shardID).Uint64("ReplicaID", replicaID).Str("Service", "RaftStateMachine").Logger()
 	return &OnDiskStateMachine{
 		shardID:    shardID,
@@ -34,6 +36,7 @@ func createStateMachine(shardID, replicaID uint64, logger zerolog.Logger) statem
 		APPUrl:     utils.ApplicationURL,
 		shouldSync: utils.RaftSync,
 		logger:     childLogger,
+		readyPtr:   readyPtr,
 	}
 }
 
@@ -267,5 +270,6 @@ func (o *OnDiskStateMachine) Close() error {
 	// We do nothing here, since we want to force the application to be resilient to crashes
 	o.logger.Info().Msg("calling Close")
 	o.closed = true
+	o.readyPtr.Store(2)
 	return nil
 }

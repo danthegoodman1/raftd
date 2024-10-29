@@ -115,6 +115,10 @@ func FirstOr[T any](a []T, def T) T {
 	return a[0]
 }
 
+func Ptr[T any](val T) *T {
+	return &val
+}
+
 var ErrVersionBadFormat = PermError("bad version format")
 
 // VersionToInt converts a simple semantic version string (e.e. 18.02.66)
