@@ -53,10 +53,10 @@ All requests are POST requests.
 
 - `/LastLogIndex` - return the index of the last log entry that has been persisted
 - `/UpdateEntries` - update one or more entries in persistent storage (also storing the highest log index)
-- `/Read` - return data based on body provided body
-- `/PrepareSnapshot` - see Snapshots
-- `/SaveSnapshot` - see Snapshots
-- `/RecoverFromSnapshot` - see Snapshots
+- `/Read` - read data to raftd, called for linearizable reads
+- `/PrepareSnapshot` - see [Snapshots](#snapshots)
+- `/SaveSnapshot` - see [Snapshots](#snapshots)
+- `/RecoverFromSnapshot` - see [Snapshots](#snapshots)
 
 And you may optionally add the following endpoints
 - `/Sync` - This is an optimization RPC that is disabled by default. You can enable it with the `RAFT_SYNC=1` env var. Using this, it allows you to defer any fsync or batch commit calls (final durability) from UpdateEntries until this is called. If your UpdateEntries method already durably persists records to disk, then there is no need to use this. This is a pure optimization with some decently large complexity tradeoffs, so only use this if you know what you're doing. You can set `RAFT_SYNC=1` env var to use this. 
