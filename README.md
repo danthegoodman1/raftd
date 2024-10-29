@@ -55,11 +55,10 @@ All requests are POST requests. All endpoints receive the following headers:
 - `raftd-replica-id` - The replica ID as a string
 
 #### `/LastLogIndex`
+
 Returns the index of the last log entry that has been persisted.
 
-**Request body:**
-
-Empty
+**Request body:** none
 
 **Response body:**
 ```json
@@ -69,6 +68,7 @@ Empty
 ```
 
 #### `/UpdateEntries`
+
 Update one or more entries in persistent storage.
 
 **Request body:**
@@ -94,21 +94,23 @@ Update one or more entries in persistent storage.
 ```
 
 #### `/Read`
+
 Read data based on some payload, called for linearizable reads.
 
 **Request body:** Any JSON payload
+
 **Response body:** Any JSON payload (will be returned directly to caller)
 
 #### `/PrepareSnapshot`
+
 Called periodically to prepare for potential snapshot creation. See [Snapshots](#snapshots).
 
-**Request body:**
-
-Empty
+**Request body:** none
 
 **Response body:** Any JSON payload that can be used later by `/SaveSnapshot`
 
 #### `/SaveSnapshot`
+
 Generate and stream a snapshot based on previous `/PrepareSnapshot` result. See [Snapshots](#snapshots).
 
 **Request body:** The JSON payload returned from `/PrepareSnapshot`
@@ -116,6 +118,7 @@ Generate and stream a snapshot based on previous `/PrepareSnapshot` result. See 
 **Response body:** Stream of snapshot data (no specific format required)
 
 #### `/RecoverFromSnapshot`
+
 Recover from a streamed snapshot. See [Snapshots](#snapshots).
 
 **Request body:** Stream of snapshot data (matching format from `/SaveSnapshot`)
@@ -125,9 +128,8 @@ Recover from a streamed snapshot. See [Snapshots](#snapshots).
 #### `/Sync` (Optional)
 Called after updates if `RAFT_SYNC=1`. See optimization notes above.
 
-**Request body:**
 
-Empty
+**Request body:** none
 
 **Response body:** Empty response with success status code
 
