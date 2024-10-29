@@ -12,7 +12,8 @@ It manages all the complicated parts of raft like durable log management, log co
     * [Building the API - WIP](#building-the-api---wip)
     * [Snapshots](#snapshots)
     * [Reading and writing via the raftd HTTP API - WIP](#reading-and-writing-via-the-raftd-http-api---wip)
-  * [Tips and Tricks](#tips-and-tricks)
+  * [Credit and related work](#credit-and-related-work)
+  * [Tips and tricks](#tips-and-tricks)
     * [Use an HTTP/2 server](#use-an-http2-server)
     * [Keep Raft group data small](#keep-raft-group-data-small)
     * [Consider non-deterministic actions](#consider-non-deterministic-actions)
@@ -89,7 +90,15 @@ In order to write (update), it MUST go through Raft. And in order to do that, we
 
 Even if your local instance is the leader and can process the write, it MUST submit it through raftd. raftd will call up to your application once it has reached consensus for that write to persist it.
 
-## Tips and Tricks
+## Credit and related work
+
+This project is inspired by (and largely wraps) [dragonboat](https://github.com/lni/dragonboat). The simplicity  and ease of use of the designed API while maintaining the promised guarantees made me think "man I wish I had this in other languages". This project would likely not exist without this great package.
+
+While there are Raft packages in various other languages, they vary greatly in their support, correctness, and ease of use. This package has shown that all are great.
+
+raftd provides an opinionated API on top of dragonboat that runs as a daemon process. It simplifies terminology, manages some of the esoteric peculiarities of consensus algorithms, and adds a few guard rails on top.
+
+## Tips and tricks
 
 ### Use an HTTP/2 server
 
