@@ -1,6 +1,7 @@
 package raft
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -25,8 +26,32 @@ func createStateMachine(shardID, replicaID uint64, appURL url.URL) statemachine.
 
 const timeout = time.Second // todo make customizable
 
-type openResponse struct {
-	LastLogIndex uint64
+func doReqWithContext[T any](ctx context.Context, method string, url string, body io.Reader) (T, error) {
+	var defaultResponse T
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return defaultResponse, fmt.Errorf("error in NewRequestWithContext: %w", err)
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return defaultResponse, fmt.Errorf("error in http.Do: %w", err)
+	}
+	defer res.Body.Close()
+
+	var resBody T
+	resBytes, err := io.ReadAll(res.Body)
+	if err != nil {
+		return defaultResponse, fmt.Errorf("error in io.ReadAll: %w", err)
+	}
+
+	err = json.Unmarshal(resBytes, &resBody)
+	if err != nil {
+		return defaultResponse, fmt.Errorf("error in json.Unmarshal: %w", err)
+	}
+
+	return resBody, nil
 }
 
 func (o *OnDiskStateMachine) Open(stopc <-chan struct{}) (uint64, error) {
@@ -43,29 +68,14 @@ func (o *OnDiskStateMachine) Open(stopc <-chan struct{}) (uint64, error) {
 		}
 	}()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", o.APPUrl.String()+"/LastLogIndex", nil)
+	res, err := doReqWithContext[struct {
+		LastLogIndex uint64
+	}](ctx, "POST", o.APPUrl.String()+"/LastLogIndex", nil)
 	if err != nil {
 		return -1, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
 
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return -1, fmt.Errorf("error in http.Do: %w", err)
-	}
-	defer res.Body.Close()
-
-	var resBody openResponse
-	resBytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return -1, fmt.Errorf("error in io.ReadAll: %w", err)
-	}
-
-	err = json.Unmarshal(resBytes, &resBody)
-	if err != nil {
-		return -1, fmt.Errorf("error in json.Unmarshal: %w", err)
-	}
-
-	return resBody.LastLogIndex, nil
+	return res.LastLogIndex, nil
 }
 
 func (o *OnDiskStateMachine) Update(entries []statemachine.Entry) ([]statemachine.Entry, error) {
@@ -74,8 +84,20 @@ func (o *OnDiskStateMachine) Update(entries []statemachine.Entry) ([]statemachin
 }
 
 func (o *OnDiskStateMachine) Lookup(i interface{}) (interface{}, error) {
-	// TODO implement me
-	panic("implement me")
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	jsonBytes, err := json.Marshal(i)
+	if err != nil {
+		return nil, fmt.Errorf("error in json.Marshal: %w", err)
+	}
+
+	res, err := doReqWithContext[any](ctx, "POST", o.APPUrl.String()+"/Lookup", bytes.NewReader(jsonBytes))
+	if err != nil {
+		return -1, fmt.Errorf("error in NewRequestWithContext: %w", err)
+	}
+
+	return res, nil
 }
 
 func (o *OnDiskStateMachine) Sync() error {
@@ -84,8 +106,15 @@ func (o *OnDiskStateMachine) Sync() error {
 }
 
 func (o *OnDiskStateMachine) PrepareSnapshot() (interface{}, error) {
-	// TODO implement me
-	panic("implement me")
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	res, err := doReqWithContext[any](ctx, "POST", o.APPUrl.String()+"/PrepareSnapshot", nil)
+	if err != nil {
+		return -1, fmt.Errorf("error in NewRequestWithContext: %w", err)
+	}
+
+	return res, nil
 }
 
 func (o *OnDiskStateMachine) SaveSnapshot(i interface{}, writer io.Writer, i2 <-chan struct{}) error {

@@ -33,9 +33,11 @@ In order to integrate with raftd, you have to do three simple things:
 
 Implementing the following endpoints is the most important and involved part of integration. But as you'll see, it's quite trivial to do.
 
-- GET LastLogIndex - return the index of the last log entry that has been persisted
+All requests are POST requests.
+
+- POST LastLogIndex - return the index of the last log entry that has been persisted
 - POST UpdateEntries - update one or more entries in persistent storage (also storing the highest log index)
-- GET GetEntry - return a given entry by some identifier, the body will be the body that was submitted to raftd for a linearizable read
+- POST GetEntry - return a given entry by some identifier, the body will be the body that was submitted to raftd for a linearizable read
 - POST PrepareSnapshot - see Snapshots
 - POST SaveSnapshot - see Snapshots
 - POST RecoverFromSnapshot - see Snapshots
