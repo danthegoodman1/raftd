@@ -69,9 +69,9 @@ You can use these to distinguish between Raft groups and replicas if needed.
 
 ### `/Ready`
 
-Returns any 200 body content, should return a 5xx code if not ready yet (still booting).
-This should only return a 200 response when the node is ready. If this returns a non-200 after previously returning a 200,
-the raftd process will shut down.
+Returns any 200 body content, should return a `5xx` code if not ready yet (still booting).
+This should only return a `200` response when the node is ready. If this returns a `non-200` after previously returning a `200`,
+the raftd process will crash.
 
 ### `/LastLogIndex`
 
@@ -155,11 +155,13 @@ Called after updates if `RAFT_SYNC=1`. See optimization notes above.
 ## Monitoring raftd
 
 You can monitor raftd at `/hc` (health check) and `/rc` (readiness check) endpoints.
-`/hc` is used to determine whether the API is alive, `/rc` is when raftd is ready to process requests.
+`/hc` is used to determine whether the API is alive, `/rc` is when raftd is ready to process requests. Note that `/rc` will not return a `200` (ready) until it has contacted your `/Ready` endpoint and received a `200` response.
 
 You can monitor these both automatically (e.g. kubernetes monitors), and with your app. Specifically, monitoring
 the `/rc` endpoint with your app after you've already returned a `200` response from your `/Ready` endpoint will let you
 know if raftd shut down for any reason. It will return a `500` with the body `shut down`, and it will not recover. In this case, you should crash your application.
+
+If you are unable to contact raftd (e.g. it has crashed), you should also crash your application.
 
 You can see the various readiness states in the `ReadinessCheck` function in [http_server.go](http_server/http_server.go).
 
