@@ -46,7 +46,7 @@ TODO
 | `RAFT_SYNC`           | Whether to call the /Sync endpoint, see optimization below. Set to `1` to enable. Only use if you know what you're doing! | `0`                                    |
 | `RAFT_DIR`            | Local directory where Raft will store log and snapshot data for all nodes (each node has a subdirectory).                 | `_raft` (current executable directory) |
 
-### Building the API - WIP
+### Building the API
 
 Implementing the following endpoints is the most important and involved part of integration. But as you'll see, it's quite trivial to do.
 
@@ -57,6 +57,12 @@ All requests additionally provide the following headers:
 - `raftd-replica-id` - The replica ID as a string
 
 You can use these to distinguish between Raft groups and replicas if needed.
+
+#### `/Ready`
+
+Returns any 200 body content, should return a 5xx code if not ready yet (still booting).
+This should only return a 200 response when the node is ready. If this returns a non-200 after previously returning a 200,
+the raftd process will shut down.
 
 #### `/LastLogIndex`
 
@@ -136,6 +142,16 @@ Called after updates if `RAFT_SYNC=1`. See optimization notes above.
 **Request body:** none
 
 **Response body:** Empty response with success status code
+
+### Monitoring raftd
+
+You can monitor raftd at `/hc` (health check) and `/rc` (readiness check) endpoints.
+`/hc` is used to determine whether the API is alive, `/rc` is when raftd is ready to process requests.
+
+You can monitor these both automatically (e.g. kubernetes monitors), as well as with your app. Specifically, monitoring
+the `/rc` endpoint with your app after you've already returned a `200` response from your `/Ready` endpoint will let you
+know if raftd shut down for any reason. It will return a `500` with the body `closed`, and it will not return until restarted.
+In this case, you should crash your application.
 
 ### Snapshots
 
