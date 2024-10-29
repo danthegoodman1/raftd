@@ -43,10 +43,10 @@ func genHighStatusCodeError(statusCode int, body io.Reader) error {
 	return fmt.Errorf("%w (%d): %s", ErrHighStatusCode, statusCode, string(allBytes)[:100])
 }
 
-func doReqWithContext[T any](ctx context.Context, method string, url string, body io.Reader) (T, error) {
+func doReqWithContext[T any](ctx context.Context, url string, body io.Reader) (T, error) {
 	var defaultResponse T
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, nil)
 	if err != nil {
 		return defaultResponse, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -91,7 +91,7 @@ func (o *OnDiskStateMachine) Open(stopc <-chan struct{}) (uint64, error) {
 
 	res, err := doReqWithContext[struct {
 		LastLogIndex uint64
-	}](ctx, "POST", o.APPUrl.String()+"/LastLogIndex", nil)
+	}](ctx, o.APPUrl.String()+"/LastLogIndex", nil)
 	if err != nil {
 		return -1, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -113,7 +113,7 @@ func (o *OnDiskStateMachine) Lookup(i interface{}) (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	res, err := doReqWithContext[any](ctx, "POST", o.APPUrl.String()+"/Lookup", bytes.NewReader(jsonBytes))
+	res, err := doReqWithContext[any](ctx, o.APPUrl.String()+"/Lookup", bytes.NewReader(jsonBytes))
 	if err != nil {
 		return -1, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -130,7 +130,7 @@ func (o *OnDiskStateMachine) PrepareSnapshot() (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	res, err := doReqWithContext[any](ctx, "POST", o.APPUrl.String()+"/PrepareSnapshot", nil)
+	res, err := doReqWithContext[any](ctx, o.APPUrl.String()+"/PrepareSnapshot", nil)
 	if err != nil {
 		return -1, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -147,7 +147,7 @@ func (o *OnDiskStateMachine) SaveSnapshot(i interface{}, writer io.Writer, i2 <-
 	ctx, cancel := context.WithTimeout(context.Background(), snapshotTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", o.APPUrl.String()+"/SaveSnapshot", bytes.NewReader(jsonBytes))
+	req, err := http.NewRequestWithContext(ctx, "POST", o.APPUrl.String()+"/SaveSnapshot", bytes.NewReader(jsonBytes))
 	if err != nil {
 		return fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -174,7 +174,7 @@ func (o *OnDiskStateMachine) RecoverFromSnapshot(reader io.Reader, i <-chan stru
 	ctx, cancel := context.WithTimeout(context.Background(), snapshotTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", o.APPUrl.String()+"/SaveSnapshot", reader)
+	req, err := http.NewRequestWithContext(ctx, "POST", o.APPUrl.String()+"/SaveSnapshot", reader)
 	if err != nil {
 		return fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
