@@ -33,6 +33,16 @@ func (o *OnDiskStateMachine) Open(stopc <-chan struct{}) (uint64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
+	// Create a goroutine to cancel the context if stopc is triggered
+	go func() {
+		select {
+		case <-stopc:
+			cancel()
+		case <-ctx.Done():
+			return
+		}
+	}()
+
 	req, err := http.NewRequestWithContext(ctx, "GET", o.APPUrl.String()+"/LastLogIndex", nil)
 	if err != nil {
 		return -1, fmt.Errorf("error in NewRequestWithContext: %w", err)
