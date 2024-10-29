@@ -11,7 +11,7 @@ It manages all the complicated parts of raft like durable log management, log co
     * [Configuration](#configuration)
     * [Building the API - WIP](#building-the-api---wip)
     * [Snapshots](#snapshots)
-    * [Reading and writing via the raftd HTTP API](#reading-and-writing-via-the-raftd-http-api)
+    * [Reading and writing via the raftd HTTP API - WIP](#reading-and-writing-via-the-raftd-http-api---wip)
   * [Tips and Tricks](#tips-and-tricks)
     * [Use an HTTP/2 server](#use-an-http2-server)
     * [Keep Raft group data small](#keep-raft-group-data-small)
@@ -81,7 +81,7 @@ It is recommended to leave automatic snapshotting enabled (which again, will onl
 
 **It is expected that snapshots can be created concurrently with other update operations.**
 
-### Reading and writing via the raftd HTTP API
+### Reading and writing via the raftd HTTP API - WIP
 
 You may see the term "update" referred to in place of writes. Update is the Raft protocol-specific term used for mutating data. 
 
