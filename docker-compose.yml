@@ -12,7 +12,7 @@ services:
       - RAFT_LISTEN_ADDR=0.0.0.0:9091
       - METRICS_LISTEN_ADDR=:9092
       - RAFT_PEERS=1=raft-1:9091,2=raft-2:9091,3=raft-3:9091
-      - APP_URL=http://localhost:8080
+      - APP_URL=http://app-1:8080
       - RAFT_DIR=/data
       - DEBUG=1
       - PRETTY=1
@@ -35,7 +35,7 @@ services:
       - RAFT_LISTEN_ADDR=0.0.0.0:9091
       - METRICS_LISTEN_ADDR=:9092
       - RAFT_PEERS=1=raft-1:9091,2=raft-2:9091,3=raft-3:9091
-      - APP_URL=http://localhost:8080
+      - APP_URL=http://app-2:8080
       - RAFT_DIR=/data
       - DEBUG=1
       - PRETTY=1
@@ -58,7 +58,7 @@ services:
       - RAFT_LISTEN_ADDR=0.0.0.0:9091
       - METRICS_LISTEN_ADDR=:9092
       - RAFT_PEERS=1=raft-1:9091,2=raft-2:9091,3=raft-3:9091
-      - APP_URL=http://localhost:8080
+      - APP_URL=http://app-3:8080
       - RAFT_DIR=/data
       - DEBUG=1
       - PRETTY=1
