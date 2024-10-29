@@ -50,7 +50,7 @@ TODO
 
 Implementing the following endpoints is the most important and involved part of integration. But as you'll see, it's quite trivial to do.
 
-All requests are POST requests. All endpoints receive the following headers:
+All requests are POST requests, using `application/json` bodies. All endpoints receive the following headers:
 - `raftd-node-id` - The node ID as a string
 - `raftd-replica-id` - The replica ID as a string
 
