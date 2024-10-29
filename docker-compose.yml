@@ -1,0 +1,64 @@
+version: "3.8"
+services:
+  # first node
+  raft-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: raft-1
+    environment:
+      - NODE_ID=1
+      - HTTP_LISTEN_ADDR=:9090
+      - RAFT_LISTEN_ADDR=:9091
+      - METRICS_LISTEN_ADDR=:9092
+      - RAFT_PEERS=1=raft-1:9091,2=raft-2:9091,3=raft-3:9091
+      - APP_URL=http://localhost:8080
+      - RAFT_DIR=/data
+    ports:
+      - "19090:9090"  # HTTP
+      - "19091:9091"  # Raft
+      - "19092:9092"  # Metrics
+    volumes:
+      - ./_raft/node1:/data
+
+  # second node
+  raft-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: raft-2
+    environment:
+      - NODE_ID=2
+      - HTTP_LISTEN_ADDR=:9090
+      - RAFT_LISTEN_ADDR=:9091
+      - METRICS_LISTEN_ADDR=:9092
+      - RAFT_PEERS=1=raft-1:9091,2=raft-2:9091,3=raft-3:9091
+      - APP_URL=http://localhost:8080
+      - RAFT_DIR=/data
+    ports:
+      - "29090:9090"
+      - "29091:9091"
+      - "29092:9092"
+    volumes:
+      - ./_raft/node2:/data
+
+  # third node
+  raft-3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: raft-3
+    environment:
+      - NODE_ID=3
+      - HTTP_LISTEN_ADDR=:9090
+      - RAFT_LISTEN_ADDR=:9091
+      - METRICS_LISTEN_ADDR=:9092
+      - RAFT_PEERS=1=raft-1:9091,2=raft-2:9091,3=raft-3:9091
+      - APP_URL=http://localhost:8080
+      - RAFT_DIR=/data
+    ports:
+      - "39090:9090"
+      - "39091:9091"
+      - "39092:9092"
+    volumes:
+      - ./_raft/node3:/data
