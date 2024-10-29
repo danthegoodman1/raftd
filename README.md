@@ -61,7 +61,7 @@ TODO
 
 Implementing the following endpoints is the most important and involved part of integration. But as you'll see, it's quite trivial to do.
 
-All requests are POST requests, using `application/json` bodies.
+All requests are POST requests, using `content-type: application/json` if JSON, otherwise there will be no `content-type` (unknown format).
 
 All requests additionally provide the following headers:
 - `raftd-node-id` - The node ID as a string
@@ -110,9 +110,8 @@ Update one or more entries in persistent storage.
   "Results": [
     // Optional array of results matching the length of entries,
     // with the result being in the same location as the original entry
-    // If provided, these results will be returned to the Raft client (write caller)
     {
-      "Result": "base64 encoded bytes"
+      "Result": "base64 encoded bytes" // Will be passed back to the caller
     }
   ]
 }
@@ -122,9 +121,9 @@ Update one or more entries in persistent storage.
 
 Read data based on some payload, called for linearizable reads.
 
-**Request body:** Any JSON payload
+**Request body:** Any bytes payload, relayed from the caller to raftd `/read`
 
-**Response body:** Any JSON payload (will be returned directly to caller)
+**Response body:** Any bytes payload, return to the caller to raftd `/read`
 
 ### `/PrepareSnapshot`
 
