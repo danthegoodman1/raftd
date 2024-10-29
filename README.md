@@ -67,13 +67,13 @@ All requests additionally provide the following headers:
 
 You can use these to distinguish between Raft groups and replicas if needed.
 
-#### `/Ready`
+### `/Ready`
 
 Returns any 200 body content, should return a 5xx code if not ready yet (still booting).
 This should only return a 200 response when the node is ready. If this returns a non-200 after previously returning a 200,
 the raftd process will shut down.
 
-#### `/LastLogIndex`
+### `/LastLogIndex`
 
 Returns the index of the last log entry that has been persisted.
 
@@ -86,7 +86,7 @@ Returns the index of the last log entry that has been persisted.
 }
 ```
 
-#### `/UpdateEntries`
+### `/UpdateEntries`
 
 Update one or more entries in persistent storage.
 
