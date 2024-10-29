@@ -98,7 +98,7 @@ Update one or more entries in persistent storage.
   "Entries": [
     {
       "Index": 123, // uint64
-      "Cmd": "base64-encoded-bytes"
+      "Cmd": "base64 encoded bytes"
     }
   ]
 }
@@ -108,8 +108,12 @@ Update one or more entries in persistent storage.
 ```json
 {
   "Results": [
-    // Optional array of results matching the length of entries
+    // Optional array of results matching the length of entries,
+    // with the result being in the same location as the original entry
     // If provided, these results will be returned to the Raft client (write caller)
+    {
+      "Result": "base64 encoded bytes"
+    }
   ]
 }
 ```
