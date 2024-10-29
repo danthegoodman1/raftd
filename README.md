@@ -53,7 +53,7 @@ All requests are POST requests.
 
 - `/LastLogIndex` - return the index of the last log entry that has been persisted
 - `/UpdateEntries` - update one or more entries in persistent storage (also storing the highest log index)
-- `/Read` - read data to raftd, called for linearizable reads
+- `/Read` - read data based on some body (from the caller), called for linearizable reads
 - `/PrepareSnapshot` - see [Snapshots](#snapshots)
 - `/SaveSnapshot` - see [Snapshots](#snapshots)
 - `/RecoverFromSnapshot` - see [Snapshots](#snapshots)
