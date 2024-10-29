@@ -50,17 +50,88 @@ TODO
 
 Implementing the following endpoints is the most important and involved part of integration. But as you'll see, it's quite trivial to do.
 
-All requests are POST requests.
+All requests are POST requests. All endpoints receive the following headers:
+- `raftd-node-id` - The node ID as a string
+- `raftd-replica-id` - The replica ID as a string
 
-- `/LastLogIndex` - return the index of the last log entry that has been persisted
-- `/UpdateEntries` - update one or more entries in persistent storage (also storing the highest log index)
-- `/Read` - read data based on some payload (from the caller), called for linearizable reads
-- `/PrepareSnapshot` - see [Snapshots](#snapshots)
-- `/SaveSnapshot` - see [Snapshots](#snapshots)
-- `/RecoverFromSnapshot` - see [Snapshots](#snapshots)
+#### `/LastLogIndex`
 
-And you may optionally add the following endpoints
-- `/Sync` - This is an optimization RPC that is disabled by default. You can enable it with the `RAFT_SYNC=1` env var. Using this, it allows you to defer any fsync or batch commit calls (final durability) from UpdateEntries until this is called. If your UpdateEntries method already durably persists records to disk, then there is no need to use this. This is a pure optimization with some decently large complexity tradeoffs, so only use this if you know what you're doing. You can set `RAFT_SYNC=1` env var to use this. 
+Returns the index of the last log entry that has been persisted.
+
+Request body: Empty
+
+Response body:
+```json
+{
+  "LastLogIndex": 123 // uint64
+}
+```
+
+#### `/UpdateEntries`
+
+Update one or more entries in persistent storage.
+
+Request body:
+```json
+{
+  "Entries": [
+    {
+      "Index": 123, // uint64
+      "Cmd": "base64-encoded-bytes"
+    }
+  ]
+}
+```
+
+Response body:
+```json
+{
+  "Results": [
+    // Optional array of results matching the length of entries
+    // If provided, these results will be returned to the Raft client (write caller)
+  ]
+}
+```
+
+#### `/Read`
+
+Read data based on some payload, called for linearizable reads.
+
+Request body: Any JSON payload
+
+Response body: Any JSON payload (will be returned directly to caller)
+
+#### `/PrepareSnapshot`
+
+Called periodically to prepare for potential snapshot creation. See [Snapshots](#snapshots).
+
+Request body: Empty
+
+Response body: Any JSON payload that can be used later by `/SaveSnapshot`
+
+#### `/SaveSnapshot`
+
+Generate and stream a snapshot based on previous `/PrepareSnapshot` result. See [Snapshots](#snapshots).
+
+Request body: The JSON payload returned from `/PrepareSnapshot`
+
+Response body: Stream of snapshot data (no specific format required)
+
+#### `/RecoverFromSnapshot`
+
+Recover from a streamed snapshot. See [Snapshots](#snapshots).
+
+Request body: Stream of snapshot data (matching format from `/SaveSnapshot`)
+
+Response body: Empty response with success status code
+
+#### `/Sync` (Optional)
+
+Called after updates if `RAFT_SYNC=1`. See optimization notes above.
+
+Request body: Empty
+
+Response body: Empty response with success status code
 
 ### Snapshots
 
