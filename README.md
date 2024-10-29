@@ -152,7 +152,7 @@ Called after updates if `RAFT_SYNC=1`. See optimization notes above.
 
 **Response body:** Empty response with success status code
 
-# Monitoring raftd
+## Monitoring raftd
 
 You can monitor raftd at `/hc` (health check) and `/rc` (readiness check) endpoints.
 `/hc` is used to determine whether the API is alive, `/rc` is when raftd is ready to process requests.
