@@ -46,7 +46,7 @@ func NewRaftManager() (*RaftManager, error) {
 		SnapshotEntries:    1000,
 		CompactionOverhead: 5,
 	}
-	datadir := filepath.Join("_raft", fmt.Sprintf("node%d", utils.NodeID))
+	datadir := filepath.Join(utils.RaftStorageDirectory, fmt.Sprintf("node%d", utils.NodeID))
 	nhc := config.NodeHostConfig{
 		WALDir:         datadir,
 		NodeHostDir:    datadir,

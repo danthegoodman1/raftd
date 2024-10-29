@@ -12,7 +12,8 @@ var (
 
 	RaftPeers = os.Getenv("RAFT_PEERS") // csv of id=aadr pairs like 1=localhost:6000,2=localhost:6001,3=localhost:6002
 
-	ApplicationURL = GetEnvOrDefault("APP_URL", "http://localhost:8080") // where the application can be reached, required
-	NodeID         = uint64(GetEnvOrDefaultInt("NODE_ID", 0))
-	RaftSync       = GetEnvOrDefaultInt("RAFT_SYNC", 0) == 1
+	ApplicationURL       = GetEnvOrDefault("APP_URL", "http://localhost:8080") // where the application can be reached, required
+	NodeID               = uint64(GetEnvOrDefaultInt("NODE_ID", 0))
+	RaftSync             = GetEnvOrDefaultInt("RAFT_SYNC", 0) == 1
+	RaftStorageDirectory = GetEnvOrDefault("RAFT_DIR", "_raft")
 )

@@ -43,6 +43,16 @@ func GetEnvOrDefaultInt(env string, defaultVal int64) int64 {
 	}
 }
 
+func MustEnv(env string) string {
+	e := os.Getenv(env)
+	if e == "" {
+		logger.Fatal().Msgf("Must provide env var %s", env)
+		return ""
+	}
+
+	return e
+}
+
 func GenRandomID(prefix string) string {
 	return prefix + gonanoid.MustGenerate("abcdefghijklmonpqrstuvwxyzABCDEFGHIJKLMONPQRSTUVWXYZ0123456789", 22)
 }

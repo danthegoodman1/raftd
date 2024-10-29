@@ -8,6 +8,7 @@ It manages all the complicated parts of raft like durable log management, log co
 * [raftd](#raftd)
   * [Integrating](#integrating)
     * [Running it](#running-it)
+    * [Configuration](#configuration)
     * [Building the API](#building-the-api)
     * [Snapshots](#snapshots)
     * [Reading and writing via the raftd HTTP API](#reading-and-writing-via-the-raftd-http-api)
@@ -29,21 +30,36 @@ In order to integrate with raftd, you have to do three simple things:
 
 ### Running it
 
+TODO
+
+### Configuration
+
+| Env var               | Description                                                                                                               | Required/Default        |
+|-----------------------|---------------------------------------------------------------------------------------------------------------------------|-------------------------|
+| `APP_URL`             | Set the URL at which the application API can be reached. Should include protocol and any path prefixes                    | `http://localhost:8080` |
+| `HTTP_LISTEN_ADDR`    | Listen address for the http server                                                                                        | `:9090`                 |
+| `RAFT_LISTEN_ADDR`    | Listen address for raft clustering                                                                                        | `:9091`                 |
+| `METRICS_LISTEN_ADDR` | Listen address for the prometheus metrics server (see [`internal_http.go`](observability/internal_htto.go))               | `:9092`                 |
+| `RAFT_PEERS`          | CSV of Raft peers in `ID=ADDR` format. Example: `1=localhost:8090,2=localhost:8091,3=localhost:8092`                      | Required                |
+| `NODE_ID`             | Unique integer Node ID of this node. >= 1                                                                                 | Required                |
+| `RAFT_SYNC`           | Whether to call the /Sync endpoint, see optimization below. Set to `1` to enable. Only use if you know what you're doing! | `0`                     |
+| `RAFT_DIR`            | Local directory where Raft will store log and snapshot data for all nodes (each node has a subdirectory).                 | `./_raft`               |
+
 ### Building the API
 
 Implementing the following endpoints is the most important and involved part of integration. But as you'll see, it's quite trivial to do.
 
 All requests are POST requests.
 
-- POST LastLogIndex - return the index of the last log entry that has been persisted
-- POST UpdateEntries - update one or more entries in persistent storage (also storing the highest log index)
-- POST Read - return data based on body provided body
-- POST PrepareSnapshot - see Snapshots
-- POST SaveSnapshot - see Snapshots
-- POST RecoverFromSnapshot - see Snapshots
+- POST /LastLogIndex - return the index of the last log entry that has been persisted
+- POST /UpdateEntries - update one or more entries in persistent storage (also storing the highest log index)
+- POST /Read - return data based on body provided body
+- POST /PrepareSnapshot - see Snapshots
+- POST /SaveSnapshot - see Snapshots
+- POST /RecoverFromSnapshot - see Snapshots
 
 And you may optionally add the following endpoints
-- POST Sync - This is an optimization RPC that is disabled by default. You can enable it with the `RAFT_SYNC=1` env var. Using this, it allows you to defer any fsync or batch commit calls (final durability) from UpdateEntries until this is called. If your UpdateEntries method already durably persists records to disk, then there is no need to use this. This is a pure optimization with some decently large complexity tradeoffs, so only use this if you know what you're doing. You can set `RAFT_SYNC=1` env var to use this. 
+- POST .Sync - This is an optimization RPC that is disabled by default. You can enable it with the `RAFT_SYNC=1` env var. Using this, it allows you to defer any fsync or batch commit calls (final durability) from UpdateEntries until this is called. If your UpdateEntries method already durably persists records to disk, then there is no need to use this. This is a pure optimization with some decently large complexity tradeoffs, so only use this if you know what you're doing. You can set `RAFT_SYNC=1` env var to use this. 
 
 ### Snapshots
 
