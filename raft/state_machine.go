@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/lni/dragonboat/v4/statemachine"
 	"io"
@@ -14,17 +15,33 @@ import (
 
 type (
 	OnDiskStateMachine struct {
-		APPUrl url.URL
+		APPUrl *url.URL
 	}
 )
 
-func createStateMachine(shardID, replicaID uint64, appURL url.URL) statemachine.IOnDiskStateMachine {
+func createStateMachine(shardID, replicaID uint64, appURL *url.URL) statemachine.IOnDiskStateMachine {
 	return &OnDiskStateMachine{
 		APPUrl: appURL,
 	}
 }
 
-const timeout = time.Second // todo make customizable
+var (
+	ErrHighStatusCode = errors.New("high status code")
+)
+
+const (
+	timeout         = time.Second // todo make customizable
+	snapshotTimeout = time.Minute
+)
+
+func genHighStatusCodeError(statusCode int, body io.Reader) error {
+	allBytes, err := io.ReadAll(body)
+	if err != nil {
+		return fmt.Errorf("error in io.ReadAll: %w", err)
+	}
+
+	return fmt.Errorf("%w (%d): %s", ErrHighStatusCode, statusCode, string(allBytes)[:100])
+}
 
 func doReqWithContext[T any](ctx context.Context, method string, url string, body io.Reader) (T, error) {
 	var defaultResponse T
@@ -39,6 +56,10 @@ func doReqWithContext[T any](ctx context.Context, method string, url string, bod
 		return defaultResponse, fmt.Errorf("error in http.Do: %w", err)
 	}
 	defer res.Body.Close()
+
+	if res.StatusCode > 299 {
+		return defaultResponse, genHighStatusCodeError(res.StatusCode, res.Body)
+	}
 
 	var resBody T
 	resBytes, err := io.ReadAll(res.Body)
@@ -84,13 +105,13 @@ func (o *OnDiskStateMachine) Update(entries []statemachine.Entry) ([]statemachin
 }
 
 func (o *OnDiskStateMachine) Lookup(i interface{}) (interface{}, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
 	jsonBytes, err := json.Marshal(i)
 	if err != nil {
 		return nil, fmt.Errorf("error in json.Marshal: %w", err)
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 
 	res, err := doReqWithContext[any](ctx, "POST", o.APPUrl.String()+"/Lookup", bytes.NewReader(jsonBytes))
 	if err != nil {
@@ -118,13 +139,57 @@ func (o *OnDiskStateMachine) PrepareSnapshot() (interface{}, error) {
 }
 
 func (o *OnDiskStateMachine) SaveSnapshot(i interface{}, writer io.Writer, i2 <-chan struct{}) error {
-	// TODO implement me
-	panic("implement me")
+	jsonBytes, err := json.Marshal(i)
+	if err != nil {
+		return fmt.Errorf("error in json.Marshal: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), snapshotTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", o.APPUrl.String()+"/SaveSnapshot", bytes.NewReader(jsonBytes))
+	if err != nil {
+		return fmt.Errorf("error in NewRequestWithContext: %w", err)
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error in http.Do: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode > 299 {
+		return genHighStatusCodeError(res.StatusCode, res.Body)
+	}
+
+	_, err = io.Copy(writer, res.Body)
+	if err != nil {
+		return fmt.Errorf("error in io.Copy: %w", err)
+	}
+
+	return nil
 }
 
 func (o *OnDiskStateMachine) RecoverFromSnapshot(reader io.Reader, i <-chan struct{}) error {
-	// TODO implement me
-	panic("implement me")
+	ctx, cancel := context.WithTimeout(context.Background(), snapshotTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", o.APPUrl.String()+"/SaveSnapshot", reader)
+	if err != nil {
+		return fmt.Errorf("error in NewRequestWithContext: %w", err)
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error in http.Do: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode > 299 {
+		return genHighStatusCodeError(res.StatusCode, res.Body)
+	}
+
+	return nil
 }
 
 func (o *OnDiskStateMachine) Close() error {

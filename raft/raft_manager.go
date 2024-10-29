@@ -30,7 +30,7 @@ var (
 func NewRaftManager() (*RaftManager, error) {
 	logger := gologger.NewLogger()
 	// validate the application url
-	_, err := url.Parse(utils.ApplicationURL)
+	appURL, err := url.Parse(utils.ApplicationURL)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing application url: %w", err)
 	}
@@ -75,7 +75,7 @@ func NewRaftManager() (*RaftManager, error) {
 	}
 
 	err = nh.StartOnDiskReplica(raftPeers, false, func(shardID uint64, replicaID uint64) statemachine.IOnDiskStateMachine {
-		return createStateMachine(shardID, replicaID)
+		return createStateMachine(shardID, replicaID, appURL)
 	}, rc)
 	if err != nil {
 		return nil, fmt.Errorf("error in StartOnDiskCluster: %w", err)
