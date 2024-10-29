@@ -59,7 +59,7 @@ func NewRaftManager() (*RaftManager, error) {
 		panic(err)
 	}
 
-	var raftPeers map[uint64]dragonboat.Target
+	raftPeers := map[uint64]dragonboat.Target{}
 	for _, peerPair := range strings.Split(utils.RaftPeers, ",") {
 		idAddrPair := strings.SplitN(peerPair, "=", 2)
 		if len(idAddrPair) != 2 {
@@ -72,6 +72,10 @@ func NewRaftManager() (*RaftManager, error) {
 		}
 
 		raftPeers[uint64(nodeID)] = idAddrPair[1]
+	}
+
+	if len(raftPeers) > 0 {
+		logger.Debug().Interface("raft peers", raftPeers).Msg("Using raft peers")
 	}
 
 	err = nh.StartOnDiskReplica(raftPeers, false, func(shardID uint64, replicaID uint64) statemachine.IOnDiskStateMachine {

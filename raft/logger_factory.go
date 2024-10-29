@@ -11,6 +11,8 @@ type RaftGoLogger struct {
 	logger zerolog.Logger
 }
 
+// todo maybe add shard and replica id info?
+
 // Note that info and debug log levels are stepped down a level
 
 func (r *RaftGoLogger) SetLevel(level dragonlogger.LogLevel) {

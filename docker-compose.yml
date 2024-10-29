@@ -9,7 +9,7 @@ services:
     environment:
       - NODE_ID=1
       - HTTP_LISTEN_ADDR=:9090
-      - RAFT_LISTEN_ADDR=:9091
+      - RAFT_LISTEN_ADDR=0.0.0.0:9091
       - METRICS_LISTEN_ADDR=:9092
       - RAFT_PEERS=1=raft-1:9091,2=raft-2:9091,3=raft-3:9091
       - APP_URL=http://localhost:8080
@@ -32,7 +32,7 @@ services:
     environment:
       - NODE_ID=2
       - HTTP_LISTEN_ADDR=:9090
-      - RAFT_LISTEN_ADDR=:9091
+      - RAFT_LISTEN_ADDR=0.0.0.0:9091
       - METRICS_LISTEN_ADDR=:9092
       - RAFT_PEERS=1=raft-1:9091,2=raft-2:9091,3=raft-3:9091
       - APP_URL=http://localhost:8080
@@ -55,7 +55,7 @@ services:
     environment:
       - NODE_ID=3
       - HTTP_LISTEN_ADDR=:9090
-      - RAFT_LISTEN_ADDR=:9091
+      - RAFT_LISTEN_ADDR=0.0.0.0:9091
       - METRICS_LISTEN_ADDR=:9092
       - RAFT_PEERS=1=raft-1:9091,2=raft-2:9091,3=raft-3:9091
       - APP_URL=http://localhost:8080
