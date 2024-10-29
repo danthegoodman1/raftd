@@ -21,7 +21,7 @@ services:
       - "19091:9091"  # Raft
       - "19092:9092"  # Metrics
     volumes:
-      - ./_raft/node1:/data
+      - ./_raft:/data
 
   # second node
   raft-2:
@@ -44,7 +44,7 @@ services:
       - "29091:9091"
       - "29092:9092"
     volumes:
-      - ./_raft/node2:/data
+      - ./_raft:/data
 
   # third node
   raft-3:
@@ -67,4 +67,4 @@ services:
       - "39091:9091"
       - "39092:9092"
     volumes:
-      - ./_raft/node3:/data
+      - ./_raft:/data
