@@ -19,7 +19,7 @@ import (
 	"golang.org/x/net/http2"
 )
 
-var logger = gologger.NewLogger()
+var logger = gologger.NewLogger().With().Str("Service", "HTTPServer").Logger()
 
 type HTTPServer struct {
 	Echo    *echo.Echo

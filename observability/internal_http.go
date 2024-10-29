@@ -11,7 +11,7 @@ import (
 	"github.com/uber-go/tally/v4/prometheus"
 )
 
-var logger = gologger.NewLogger()
+var logger = gologger.NewLogger().With().Str("Service", "InternalHTTP").Logger()
 
 func StartInternalHTTPServer(address string, prom prometheus.Reporter) error {
 	server := echo.New()

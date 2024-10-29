@@ -28,9 +28,9 @@ var (
 )
 
 func NewRaftManager() (*RaftManager, error) {
-	logger := gologger.NewLogger()
+	logger := gologger.NewLogger().With().Str("Service", "RaftManager").Logger()
 	// validate the application url
-	appURL, err := url.Parse(utils.ApplicationURL)
+	_, err := url.Parse(utils.ApplicationURL)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing application url: %w", err)
 	}

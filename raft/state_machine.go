@@ -27,7 +27,7 @@ type (
 )
 
 func createStateMachine(shardID, replicaID uint64, logger zerolog.Logger) statemachine.IOnDiskStateMachine {
-	childLogger := logger.With().Uint64("ShardID", shardID).Uint64("ReplicaID", replicaID).Logger()
+	childLogger := logger.With().Uint64("ShardID", shardID).Uint64("ReplicaID", replicaID).Str("Service", "RaftStateMachine").Logger()
 	return &OnDiskStateMachine{
 		shardID:    shardID,
 		replicaID:  replicaID,
@@ -88,6 +88,7 @@ func doReqWithContext[T any](ctx context.Context, url string, body io.Reader) (T
 }
 
 func (o *OnDiskStateMachine) Open(stopc <-chan struct{}) (uint64, error) {
+	o.logger.Debug().Msg("calling open")
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -122,6 +123,7 @@ type (
 )
 
 func (o *OnDiskStateMachine) Update(entries []statemachine.Entry) ([]statemachine.Entry, error) {
+	o.logger.Debug().Msg("calling update")
 	jsonBytes, err := json.Marshal(map[string]any{
 		"Entries": lo.Map(entries, func(entry statemachine.Entry, index int) updateEntry {
 			return updateEntry{
@@ -153,6 +155,7 @@ func (o *OnDiskStateMachine) Update(entries []statemachine.Entry) ([]statemachin
 }
 
 func (o *OnDiskStateMachine) Lookup(i interface{}) (interface{}, error) {
+	o.logger.Debug().Msg("calling lookup")
 	jsonBytes, err := json.Marshal(i)
 	if err != nil {
 		return nil, fmt.Errorf("error in json.Marshal: %w", err)
@@ -170,6 +173,7 @@ func (o *OnDiskStateMachine) Lookup(i interface{}) (interface{}, error) {
 }
 
 func (o *OnDiskStateMachine) Sync() error {
+	o.logger.Debug().Msg("calling sync")
 	if o.closed {
 		o.logger.Fatal().Msg("Sync called after close!")
 	}
@@ -189,6 +193,7 @@ func (o *OnDiskStateMachine) Sync() error {
 }
 
 func (o *OnDiskStateMachine) PrepareSnapshot() (interface{}, error) {
+	o.logger.Info().Msg("calling PrepareSnapshot")
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -201,6 +206,7 @@ func (o *OnDiskStateMachine) PrepareSnapshot() (interface{}, error) {
 }
 
 func (o *OnDiskStateMachine) SaveSnapshot(i interface{}, writer io.Writer, i2 <-chan struct{}) error {
+	o.logger.Info().Msg("calling SaveSnapshot")
 	jsonBytes, err := json.Marshal(i)
 	if err != nil {
 		return fmt.Errorf("error in json.Marshal: %w", err)
@@ -233,6 +239,7 @@ func (o *OnDiskStateMachine) SaveSnapshot(i interface{}, writer io.Writer, i2 <-
 }
 
 func (o *OnDiskStateMachine) RecoverFromSnapshot(reader io.Reader, i <-chan struct{}) error {
+	o.logger.Info().Msg("calling RecoverFromSnapshot")
 	ctx, cancel := context.WithTimeout(context.Background(), snapshotTimeout)
 	defer cancel()
 
@@ -255,6 +262,7 @@ func (o *OnDiskStateMachine) RecoverFromSnapshot(reader io.Reader, i <-chan stru
 }
 
 func (o *OnDiskStateMachine) Close() error {
+	o.logger.Info().Msg("calling Close")
 	// TODO implement me
 	panic("implement me")
 }
