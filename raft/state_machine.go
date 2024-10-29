@@ -163,8 +163,15 @@ func (o *OnDiskStateMachine) Lookup(i interface{}) (interface{}, error) {
 }
 
 func (o *OnDiskStateMachine) Sync() error {
-	// TODO implement me
-	panic("implement me")
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	_, err := doReqWithContext[any](ctx, o.APPUrl.String()+"/Sync", nil)
+	if err != nil {
+		return fmt.Errorf("error in NewRequestWithContext: %w", err)
+	}
+
+	return nil
 }
 
 func (o *OnDiskStateMachine) PrepareSnapshot() (interface{}, error) {
