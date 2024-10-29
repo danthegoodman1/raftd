@@ -110,7 +110,7 @@ func (s *HTTPServer) ReadinessCheck(c echo.Context) error {
 	case 1:
 		return c.String(http.StatusOK, "ready")
 	case 2:
-		return c.String(http.StatusOK, "shut down")
+		return c.String(http.StatusInternalServerError, "shut down")
 	default:
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("unknown status code %d", readyCode))
 	}
