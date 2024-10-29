@@ -14,4 +14,5 @@ var (
 
 	ApplicationURL = GetEnvOrDefault("APP_URL", "http://localhost:8080") // where the application can be reached, required
 	NodeID         = uint64(GetEnvOrDefaultInt("NODE_ID", 0))
+	RaftSync       = GetEnvOrDefaultInt("RAFT_SYNC", 0) == 1
 )

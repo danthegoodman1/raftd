@@ -6,27 +6,29 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/danthegoodman1/raftd/utils"
 	"github.com/lni/dragonboat/v4/statemachine"
 	"github.com/samber/lo"
 	"io"
 	"net/http"
-	"net/url"
 	"time"
 )
 
 type (
 	OnDiskStateMachine struct {
-		APPUrl    *url.URL
-		shardID   uint64
-		replicaID uint64
+		APPUrl     string
+		shardID    uint64
+		replicaID  uint64
+		shouldSync bool
 	}
 )
 
-func createStateMachine(shardID, replicaID uint64, appURL *url.URL) statemachine.IOnDiskStateMachine {
+func createStateMachine(shardID, replicaID uint64) statemachine.IOnDiskStateMachine {
 	return &OnDiskStateMachine{
-		shardID:   shardID,
-		replicaID: replicaID,
-		APPUrl:    appURL,
+		shardID:    shardID,
+		replicaID:  replicaID,
+		APPUrl:     utils.ApplicationURL,
+		shouldSync: utils.RaftSync,
 	}
 }
 
@@ -96,7 +98,7 @@ func (o *OnDiskStateMachine) Open(stopc <-chan struct{}) (uint64, error) {
 
 	res, err := doReqWithContext[struct {
 		LastLogIndex uint64
-	}](ctx, o.APPUrl.String()+"/LastLogIndex", nil)
+	}](ctx, o.APPUrl+"/LastLogIndex", nil)
 	if err != nil {
 		return -1, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -130,7 +132,7 @@ func (o *OnDiskStateMachine) Update(entries []statemachine.Entry) ([]statemachin
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	res, err := doReqWithContext[updateResponse](ctx, o.APPUrl.String()+"/UpdateEntries", bytes.NewReader(jsonBytes))
+	res, err := doReqWithContext[updateResponse](ctx, o.APPUrl+"/UpdateEntries", bytes.NewReader(jsonBytes))
 	if err != nil {
 		return entries, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -154,7 +156,7 @@ func (o *OnDiskStateMachine) Lookup(i interface{}) (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	res, err := doReqWithContext[any](ctx, o.APPUrl.String()+"/Read", bytes.NewReader(jsonBytes))
+	res, err := doReqWithContext[any](ctx, o.APPUrl+"/Read", bytes.NewReader(jsonBytes))
 	if err != nil {
 		return -1, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -163,10 +165,14 @@ func (o *OnDiskStateMachine) Lookup(i interface{}) (interface{}, error) {
 }
 
 func (o *OnDiskStateMachine) Sync() error {
+	if !o.shouldSync {
+		return nil
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	_, err := doReqWithContext[any](ctx, o.APPUrl.String()+"/Sync", nil)
+	_, err := doReqWithContext[any](ctx, o.APPUrl+"/Sync", nil)
 	if err != nil {
 		return fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -178,7 +184,7 @@ func (o *OnDiskStateMachine) PrepareSnapshot() (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	res, err := doReqWithContext[any](ctx, o.APPUrl.String()+"/PrepareSnapshot", nil)
+	res, err := doReqWithContext[any](ctx, o.APPUrl+"/PrepareSnapshot", nil)
 	if err != nil {
 		return -1, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -195,7 +201,7 @@ func (o *OnDiskStateMachine) SaveSnapshot(i interface{}, writer io.Writer, i2 <-
 	ctx, cancel := context.WithTimeout(context.Background(), snapshotTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", o.APPUrl.String()+"/Snapshot", bytes.NewReader(jsonBytes))
+	req, err := http.NewRequestWithContext(ctx, "POST", o.APPUrl+"/Snapshot", bytes.NewReader(jsonBytes))
 	if err != nil {
 		return fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -222,7 +228,7 @@ func (o *OnDiskStateMachine) RecoverFromSnapshot(reader io.Reader, i <-chan stru
 	ctx, cancel := context.WithTimeout(context.Background(), snapshotTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", o.APPUrl.String()+"/RecoverFromSnapshot", reader)
+	req, err := http.NewRequestWithContext(ctx, "POST", o.APPUrl+"/RecoverFromSnapshot", reader)
 	if err != nil {
 		return fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
