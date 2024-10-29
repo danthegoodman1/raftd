@@ -75,7 +75,7 @@ func NewRaftManager() (*RaftManager, error) {
 	}
 
 	err = nh.StartOnDiskReplica(raftPeers, false, func(shardID uint64, replicaID uint64) statemachine.IOnDiskStateMachine {
-		return createStateMachine(shardID, replicaID, appURL)
+		return createStateMachine(shardID, replicaID, logger)
 	}, rc)
 	if err != nil {
 		return nil, fmt.Errorf("error in StartOnDiskCluster: %w", err)

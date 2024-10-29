@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/danthegoodman1/raftd/utils"
 	"github.com/lni/dragonboat/v4/statemachine"
+	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"io"
 	"net/http"
@@ -20,15 +21,19 @@ type (
 		shardID    uint64
 		replicaID  uint64
 		shouldSync bool
+		closed     bool
+		logger     zerolog.Logger
 	}
 )
 
-func createStateMachine(shardID, replicaID uint64) statemachine.IOnDiskStateMachine {
+func createStateMachine(shardID, replicaID uint64, logger zerolog.Logger) statemachine.IOnDiskStateMachine {
+	childLogger := logger.With().Uint64("ShardID", shardID).Uint64("ReplicaID", replicaID).Logger()
 	return &OnDiskStateMachine{
 		shardID:    shardID,
 		replicaID:  replicaID,
 		APPUrl:     utils.ApplicationURL,
 		shouldSync: utils.RaftSync,
+		logger:     childLogger,
 	}
 }
 
@@ -165,6 +170,9 @@ func (o *OnDiskStateMachine) Lookup(i interface{}) (interface{}, error) {
 }
 
 func (o *OnDiskStateMachine) Sync() error {
+	if o.closed {
+		o.logger.Fatal().Msg("Sync called after close!")
+	}
 	if !o.shouldSync {
 		return nil
 	}
