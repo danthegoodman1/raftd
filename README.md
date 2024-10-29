@@ -37,7 +37,7 @@ All requests are POST requests.
 
 - POST LastLogIndex - return the index of the last log entry that has been persisted
 - POST UpdateEntries - update one or more entries in persistent storage (also storing the highest log index)
-- POST GetEntry - return a given entry by some identifier, the body will be the body that was submitted to raftd for a linearizable read
+- POST Read - return data based on body provided body
 - POST PrepareSnapshot - see Snapshots
 - POST SaveSnapshot - see Snapshots
 - POST RecoverFromSnapshot - see Snapshots
