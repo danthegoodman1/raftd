@@ -9,7 +9,7 @@ It manages all the complicated parts of raft like durable log management, log co
   * [Integrating](#integrating)
     * [Running it](#running-it)
     * [Configuration](#configuration)
-    * [Building the API](#building-the-api)
+    * [Building the API - WIP](#building-the-api---wip)
     * [Snapshots](#snapshots)
     * [Reading and writing via the raftd HTTP API](#reading-and-writing-via-the-raftd-http-api)
   * [Tips and Tricks](#tips-and-tricks)
@@ -45,7 +45,7 @@ TODO
 | `RAFT_SYNC`           | Whether to call the /Sync endpoint, see optimization below. Set to `1` to enable. Only use if you know what you're doing! | `0`                     |
 | `RAFT_DIR`            | Local directory where Raft will store log and snapshot data for all nodes (each node has a subdirectory).                 | `./_raft`               |
 
-### Building the API
+### Building the API - WIP
 
 Implementing the following endpoints is the most important and involved part of integration. But as you'll see, it's quite trivial to do.
 
