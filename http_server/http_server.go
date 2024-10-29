@@ -57,6 +57,7 @@ func StartHTTPServer(manager *raft.RaftManager) *HTTPServer {
 	// todo write record
 	// todo read record
 	// todo request snapshot
+	// todo read snapshot?
 	// todo group management
 
 	s.Echo.Listener = listener

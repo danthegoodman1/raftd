@@ -27,7 +27,7 @@ type (
 )
 
 func createStateMachine(shardID, replicaID uint64, logger zerolog.Logger) statemachine.IOnDiskStateMachine {
-	childLogger := logger.With().Uint64("ShardID", shardID).Uint64("ReplicaID", replicaID).Str("Service", "RaftStateMachine").Logger()
+	childLogger := logger.With().Uint64("NodeID", shardID).Uint64("ReplicaID", replicaID).Str("Service", "RaftStateMachine").Logger()
 	return &OnDiskStateMachine{
 		shardID:    shardID,
 		replicaID:  replicaID,
@@ -55,13 +55,15 @@ func genHighStatusCodeError(statusCode int, body io.Reader) error {
 	return fmt.Errorf("%w (%d): %s", ErrHighStatusCode, statusCode, string(allBytes)[:100])
 }
 
-func doReqWithContext[T any](ctx context.Context, url string, body io.Reader) (T, error) {
+func doReqWithContext[T any](ctx context.Context, shardID, replicaID uint64, url string, body io.Reader) (T, error) {
 	var defaultResponse T
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, body)
 	if err != nil {
 		return defaultResponse, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
+	req.Header.Set("raftd-node-id", fmt.Sprint(shardID))
+	req.Header.Set("raftd-replica-id", fmt.Sprint(replicaID))
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -104,7 +106,7 @@ func (o *OnDiskStateMachine) Open(stopc <-chan struct{}) (uint64, error) {
 
 	res, err := doReqWithContext[struct {
 		LastLogIndex uint64
-	}](ctx, o.APPUrl+"/LastLogIndex", nil)
+	}](ctx, o.shardID, o.replicaID, o.APPUrl+"/LastLogIndex", nil)
 	if err != nil {
 		return -1, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -139,7 +141,7 @@ func (o *OnDiskStateMachine) Update(entries []statemachine.Entry) ([]statemachin
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	res, err := doReqWithContext[updateResponse](ctx, o.APPUrl+"/UpdateEntries", bytes.NewReader(jsonBytes))
+	res, err := doReqWithContext[updateResponse](ctx, o.shardID, o.replicaID, o.APPUrl+"/UpdateEntries", bytes.NewReader(jsonBytes))
 	if err != nil {
 		return entries, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -164,7 +166,7 @@ func (o *OnDiskStateMachine) Lookup(i interface{}) (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	res, err := doReqWithContext[any](ctx, o.APPUrl+"/Read", bytes.NewReader(jsonBytes))
+	res, err := doReqWithContext[any](ctx, o.shardID, o.replicaID, o.APPUrl+"/Read", bytes.NewReader(jsonBytes))
 	if err != nil {
 		return -1, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -184,7 +186,7 @@ func (o *OnDiskStateMachine) Sync() error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	_, err := doReqWithContext[any](ctx, o.APPUrl+"/Sync", nil)
+	_, err := doReqWithContext[any](ctx, o.shardID, o.replicaID, o.APPUrl+"/Sync", nil)
 	if err != nil {
 		return fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -197,7 +199,7 @@ func (o *OnDiskStateMachine) PrepareSnapshot() (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	res, err := doReqWithContext[any](ctx, o.APPUrl+"/PrepareSnapshot", nil)
+	res, err := doReqWithContext[any](ctx, o.shardID, o.replicaID, o.APPUrl+"/PrepareSnapshot", nil)
 	if err != nil {
 		return -1, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
