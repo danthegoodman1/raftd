@@ -39,7 +39,7 @@ TODO
 | `APP_URL`             | Set the URL at which the application API can be reached. Should include protocol and any path prefixes                    | `http://localhost:8080`                |
 | `HTTP_LISTEN_ADDR`    | Listen address for the http server                                                                                        | `:9090`                                |
 | `RAFT_LISTEN_ADDR`    | Listen address for raft clustering                                                                                        | `:9091`                                |
-| `METRICS_LISTEN_ADDR` | Listen address for the prometheus metrics server (see [`internal_http.go`](observability/internal_htto.go))               | `:9092`                                |
+| `METRICS_LISTEN_ADDR` | Listen address for the prometheus metrics server (see [`internal_http.go`](observability/internal_http.go))               | `:9092`                                |
 | `RAFT_PEERS`          | CSV of Raft peers in `ID=ADDR` format. Example: `1=localhost:8090,2=localhost:8091,3=localhost:8092`                      | Required                               |
 | `NODE_ID`             | Unique integer Node ID of this node. >= 1                                                                                 | Required                               |
 | `RAFT_SYNC`           | Whether to call the /Sync endpoint, see optimization below. Set to `1` to enable. Only use if you know what you're doing! | `0`                                    |
