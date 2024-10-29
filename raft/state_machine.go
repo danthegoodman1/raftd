@@ -45,8 +45,10 @@ var (
 )
 
 const (
-	timeout         = time.Second // todo make customizable
-	snapshotTimeout = time.Minute // todo make customizable
+	timeout          = time.Second // todo make customizable
+	snapshotTimeout  = time.Minute // todo make customizable
+	jsonContentType  = "application/json"
+	bytesContentType = "application/octet-stream"
 )
 
 func genHighStatusCodeError(statusCode int, body io.Reader) error {
@@ -58,7 +60,7 @@ func genHighStatusCodeError(statusCode int, body io.Reader) error {
 	return fmt.Errorf("%w (%d): %s", ErrHighStatusCode, statusCode, string(allBytes)[:100])
 }
 
-func doReqWithContext[T any](ctx context.Context, shardID, replicaID uint64, url string, body io.Reader) (T, error) {
+func doReqWithContext[T any](ctx context.Context, shardID, replicaID uint64, url string, contentType string, body io.Reader) (T, error) {
 	var defaultResponse T
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, body)
@@ -67,6 +69,9 @@ func doReqWithContext[T any](ctx context.Context, shardID, replicaID uint64, url
 	}
 	req.Header.Set("raftd-node-id", fmt.Sprint(shardID))
 	req.Header.Set("raftd-replica-id", fmt.Sprint(replicaID))
+	if contentType != "" {
+		req.Header.Set("content-type", contentType)
+	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -109,7 +114,7 @@ func (o *OnDiskStateMachine) Open(stopc <-chan struct{}) (uint64, error) {
 
 	res, err := doReqWithContext[struct {
 		LastLogIndex uint64
-	}](ctx, o.shardID, o.replicaID, o.APPUrl+"/LastLogIndex", nil)
+	}](ctx, o.shardID, o.replicaID, o.APPUrl+"/LastLogIndex", "", nil)
 	if err != nil {
 		return 0, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -144,7 +149,7 @@ func (o *OnDiskStateMachine) Update(entries []statemachine.Entry) ([]statemachin
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	res, err := doReqWithContext[updateResponse](ctx, o.shardID, o.replicaID, o.APPUrl+"/UpdateEntries", bytes.NewReader(jsonBytes))
+	res, err := doReqWithContext[updateResponse](ctx, o.shardID, o.replicaID, o.APPUrl+"/UpdateEntries", jsonContentType, bytes.NewReader(jsonBytes))
 	if err != nil {
 		return entries, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -169,7 +174,7 @@ func (o *OnDiskStateMachine) Lookup(i interface{}) (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	res, err := doReqWithContext[any](ctx, o.shardID, o.replicaID, o.APPUrl+"/Read", bytes.NewReader(jsonBytes))
+	res, err := doReqWithContext[any](ctx, o.shardID, o.replicaID, o.APPUrl+"/Read", jsonContentType, bytes.NewReader(jsonBytes))
 	if err != nil {
 		return 0, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -189,7 +194,7 @@ func (o *OnDiskStateMachine) Sync() error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	_, err := doReqWithContext[any](ctx, o.shardID, o.replicaID, o.APPUrl+"/Sync", nil)
+	_, err := doReqWithContext[any](ctx, o.shardID, o.replicaID, o.APPUrl+"/Sync", "", nil)
 	if err != nil {
 		return fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -202,7 +207,7 @@ func (o *OnDiskStateMachine) PrepareSnapshot() (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	res, err := doReqWithContext[any](ctx, o.shardID, o.replicaID, o.APPUrl+"/PrepareSnapshot", nil)
+	res, err := doReqWithContext[any](ctx, o.shardID, o.replicaID, o.APPUrl+"/PrepareSnapshot", "", nil)
 	if err != nil {
 		return 0, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
@@ -224,6 +229,7 @@ func (o *OnDiskStateMachine) SaveSnapshot(i interface{}, writer io.Writer, i2 <-
 	if err != nil {
 		return fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
+	req.Header.Set("content-type", jsonContentType)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -252,6 +258,7 @@ func (o *OnDiskStateMachine) RecoverFromSnapshot(reader io.Reader, i <-chan stru
 	if err != nil {
 		return fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
+	req.Header.Set("content-type", bytesContentType)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {

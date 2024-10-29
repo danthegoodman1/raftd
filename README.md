@@ -61,7 +61,10 @@ TODO
 
 Implementing the following endpoints is the most important and involved part of integration. But as you'll see, it's quite trivial to do.
 
-All requests are POST requests, using `content-type: application/json` if JSON, otherwise it will be `content-type: application/octet-stream` (unknown bytes format).
+All requests are POST requests using one of the following possible `content-type` header values:
+- `application/json` if JSON
+- `application/octet-stream` if unknown bytes (e.g. relayed raftd `/read` body, recovering from a snapshot)
+- not present if there is no body
 
 All requests additionally provide the following headers:
 - `raftd-node-id` - The node ID as a string
