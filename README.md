@@ -2,7 +2,7 @@
 
 Multi-group Raft as a daemon.
 
-Build a custom distributed storage service in any language on top of high performance multi-group Raft just by making a handful of HTTP endpoints.
+Build a custom bulletproof distributed storage service in any language on top of high performance multi-group Raft just by making a handful of HTTP endpoints.
 
 It manages all the complicated parts of raft like durable log management, log compaction, snapshotting and recovery.
 
