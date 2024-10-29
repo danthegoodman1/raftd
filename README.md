@@ -2,7 +2,7 @@
 
 Multi-group Raft as a daemon - build anything in any language on top of high performance multi-group Raft just by making a handful of HTTP endpoints.
 
-It manages all the complicated parts of raft like durable log management, log compaction, snapshotting and recovery, and 
+It manages all the complicated parts of raft like durable log management, log compaction, snapshotting and recovery.
 
 <!-- TOC -->
 * [raftd](#raftd)
