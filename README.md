@@ -6,31 +6,31 @@ It manages all the complicated parts of raft like durable log management, log co
 
 <!-- TOC -->
 * [raftd](#raftd)
-  * [Integrating](#integrating)
-    * [Running it](#running-it)
-    * [Configuration](#configuration)
-    * [Building the API](#building-the-api)
+* [Integrating](#integrating)
+* [Running it](#running-it)
+* [Configuration](#configuration)
+* [Building the API](#building-the-api)
       * [`/Ready`](#ready)
       * [`/LastLogIndex`](#lastlogindex)
       * [`/UpdateEntries`](#updateentries)
-      * [`/Read`](#read)
-      * [`/PrepareSnapshot`](#preparesnapshot)
-      * [`/SaveSnapshot`](#savesnapshot)
-      * [`/RecoverFromSnapshot`](#recoverfromsnapshot)
-      * [`/Sync` (Optional)](#sync-optional)
-    * [Monitoring raftd](#monitoring-raftd)
-    * [Snapshots](#snapshots)
-    * [Reading and writing via the raftd HTTP API - WIP](#reading-and-writing-via-the-raftd-http-api---wip)
-  * [Credit and related work](#credit-and-related-work)
-  * [Tips and tricks](#tips-and-tricks)
-    * [Use an HTTP/2 server](#use-an-http2-server)
-    * [Keep Raft group data small](#keep-raft-group-data-small)
-    * [Consider non-deterministic actions](#consider-non-deterministic-actions)
-    * [Tuning snapshotting interval](#tuning-snapshotting-interval)
-    * [Controlled SQLite WAL for instant snapshots](#controlled-sqlite-wal-for-instant-snapshots)
+    * [`/Read`](#read)
+    * [`/PrepareSnapshot`](#preparesnapshot)
+    * [`/SaveSnapshot`](#savesnapshot)
+    * [`/RecoverFromSnapshot`](#recoverfromsnapshot)
+    * [`/Sync` (Optional)](#sync-optional)
+* [Monitoring raftd](#monitoring-raftd)
+* [Snapshots](#snapshots)
+  * [Reading and writing via the raftd HTTP API - WIP](#reading-and-writing-via-the-raftd-http-api---wip)
+* [Credit and related work](#credit-and-related-work)
+* [Tips and tricks](#tips-and-tricks)
+  * [Use an HTTP/2 server](#use-an-http2-server)
+  * [Keep Raft group data small](#keep-raft-group-data-small)
+  * [Consider non-deterministic actions](#consider-non-deterministic-actions)
+  * [Tuning snapshotting interval](#tuning-snapshotting-interval)
+  * [Controlled SQLite WAL for instant snapshots](#controlled-sqlite-wal-for-instant-snapshots)
 <!-- TOC -->
 
-## Integrating
+# Integrating
 
 In order to integrate with raftd, you have to do three simple things:
 
@@ -38,11 +38,11 @@ In order to integrate with raftd, you have to do three simple things:
 2. Implement a handful of HTTP endpoints
 3. Call to raftd's HTTP url to submit updates and linearizable reads
 
-### Running it
+# Running it
 
 TODO
 
-### Configuration
+# Configuration
 
 | Env var               | Description                                                                                                               | Required/Default                       |
 |-----------------------|---------------------------------------------------------------------------------------------------------------------------|----------------------------------------|
@@ -55,7 +55,7 @@ TODO
 | `RAFT_SYNC`           | Whether to call the /Sync endpoint, see optimization below. Set to `1` to enable. Only use if you know what you're doing! | `0`                                    |
 | `RAFT_DIR`            | Local directory where Raft will store log and snapshot data for all nodes (each node has a subdirectory).                 | `_raft` (current executable directory) |
 
-### Building the API
+# Building the API
 
 Implementing the following endpoints is the most important and involved part of integration. But as you'll see, it's quite trivial to do.
 
@@ -112,7 +112,7 @@ Update one or more entries in persistent storage.
 }
 ```
 
-#### `/Read`
+### `/Read`
 
 Read data based on some payload, called for linearizable reads.
 
@@ -120,7 +120,7 @@ Read data based on some payload, called for linearizable reads.
 
 **Response body:** Any JSON payload (will be returned directly to caller)
 
-#### `/PrepareSnapshot`
+### `/PrepareSnapshot`
 
 Called periodically to prepare for potential snapshot creation. See [Snapshots](#snapshots).
 
@@ -128,7 +128,7 @@ Called periodically to prepare for potential snapshot creation. See [Snapshots](
 
 **Response body:** Any JSON payload that can be used later by `/SaveSnapshot`
 
-#### `/SaveSnapshot`
+### `/SaveSnapshot`
 
 Generate and stream a snapshot based on previous `/PrepareSnapshot` result. See [Snapshots](#snapshots).
 
@@ -136,7 +136,7 @@ Generate and stream a snapshot based on previous `/PrepareSnapshot` result. See 
 
 **Response body:** Stream of snapshot data (no specific format required)
 
-#### `/RecoverFromSnapshot`
+### `/RecoverFromSnapshot`
 
 Recover from a streamed snapshot. See [Snapshots](#snapshots).
 
@@ -144,7 +144,7 @@ Recover from a streamed snapshot. See [Snapshots](#snapshots).
 
 **Response body:** Empty response with success status code
 
-#### `/Sync` (Optional)
+### `/Sync` (Optional)
 Called after updates if `RAFT_SYNC=1`. See optimization notes above.
 
 
@@ -152,7 +152,7 @@ Called after updates if `RAFT_SYNC=1`. See optimization notes above.
 
 **Response body:** Empty response with success status code
 
-### Monitoring raftd
+# Monitoring raftd
 
 You can monitor raftd at `/hc` (health check) and `/rc` (readiness check) endpoints.
 `/hc` is used to determine whether the API is alive, `/rc` is when raftd is ready to process requests.
@@ -162,7 +162,7 @@ the `/rc` endpoint with your app after you've already returned a `200` response 
 know if raftd shut down for any reason. It will return a `500` with the body `closed`, and it will not return until restarted.
 In this case, you should crash your application.
 
-### Snapshots
+# Snapshots
 
 Snapshots are only used when a new node joins the cluster, or a replica is sufficiently far behind that it cannot catch up purely via the log.
 
@@ -182,7 +182,7 @@ It is recommended to leave automatic snapshotting enabled (which again, will onl
 
 **It is expected that snapshots can be created concurrently with other update operations.**
 
-### Reading and writing via the raftd HTTP API - WIP
+## Reading and writing via the raftd HTTP API - WIP
 
 You may see the term "update" referred to in place of writes. Update is the Raft protocol-specific term used for mutating data. 
 
@@ -190,7 +190,7 @@ In order to write (update), it MUST go through Raft. And in order to do that, we
 
 Even if your local instance is the leader and can process the write, it MUST submit it through raftd. raftd will call up to your application once it has reached consensus for that write to persist it.
 
-## Credit and related work
+# Credit and related work
 
 This project is inspired by (and largely wraps) [dragonboat](https://github.com/lni/dragonboat). The simplicity  and ease of use of the designed API while maintaining the promised guarantees made me think "man I wish I had this in other languages". This project would likely not exist without this great package.
 
@@ -198,29 +198,29 @@ While there are Raft packages in various other languages, they vary greatly in t
 
 raftd provides an opinionated API on top of dragonboat that runs as a daemon process. It simplifies terminology, manages some of the esoteric peculiarities of consensus algorithms, and adds a few guard rails on top.
 
-## Tips and tricks
+# Tips and tricks
 
-### Use an HTTP/2 server
+## Use an HTTP/2 server
 
 HTTP/2 (h2 or h2c) is wildly faster than HTTP/1.1. The raftd client automatically uses HTTP/2 when possible, including cleartext (http://).
 
-### Keep Raft group data small
+## Keep Raft group data small
 
 If you are going to have a massive database (100 GB+), you should be breaking it up into multiple Raft groups. For example, CockroachDB partitions after 512MB by default.
 
-### Consider non-deterministic actions
+## Consider non-deterministic actions
 
 If you have an instruction in the update record, for example `now()` in a SQL statement, consider that this will have different results when applied to different replicas, and thus break Raft's guarantees.
 
 You should instead avoid non-deterministic actions in the update statements, and instead apply them before you save the data to Raft (e.g. generating the timestamp in your code, rather than in SQL).
 
-### Tuning snapshotting interval
+## Tuning snapshotting interval
 
 Tune this based on how large your updates are, how often you are inserting, and how resource intensive the snapshot preparation process is.
 
 Every 1,000-10,000 logs is probably good.
 
-### Controlled SQLite WAL for instant snapshots
+## Controlled SQLite WAL for instant snapshots
 
 Taking inspiration from [rqlite's new snapshotting approach](https://philipotoole.com/building-rqlite-9-0-cutting-disk-usage-by-half/#:~:text=New%20Snapshotting%20approach), if you are using SQLite as the storage engine in your application, we can modify the WAL checkpointing logic to make snapshotting instantaneous.
 
