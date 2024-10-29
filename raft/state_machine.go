@@ -61,6 +61,7 @@ func genHighStatusCodeError(statusCode int, body io.Reader) error {
 }
 
 func doReqWithContext[T any](ctx context.Context, shardID, replicaID uint64, url string, contentType string, body io.Reader) (T, error) {
+	// todo add some light backoff retry
 	var defaultResponse T
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, body)
