@@ -14,6 +14,8 @@ It manages all the complicated parts of raft like durable log management, log co
   * [Tips and Tricks](#tips-and-tricks)
     * [Use an HTTP/2 server](#use-an-http2-server)
     * [Keep Raft group data small](#keep-raft-group-data-small)
+    * [Consider non-deterministic actions](#consider-non-deterministic-actions)
+    * [Tuning snapshotting interval](#tuning-snapshotting-interval)
     * [Controlled SQLite WAL for instant snapshots](#controlled-sqlite-wal-for-instant-snapshots)
 <!-- TOC -->
 
