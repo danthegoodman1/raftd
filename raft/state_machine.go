@@ -108,7 +108,7 @@ func (o *OnDiskStateMachine) Open(stopc <-chan struct{}) (uint64, error) {
 		LastLogIndex uint64
 	}](ctx, o.shardID, o.replicaID, o.APPUrl+"/LastLogIndex", nil)
 	if err != nil {
-		return -1, fmt.Errorf("error in NewRequestWithContext: %w", err)
+		return 0, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
 
 	return res.LastLogIndex, nil
@@ -168,7 +168,7 @@ func (o *OnDiskStateMachine) Lookup(i interface{}) (interface{}, error) {
 
 	res, err := doReqWithContext[any](ctx, o.shardID, o.replicaID, o.APPUrl+"/Read", bytes.NewReader(jsonBytes))
 	if err != nil {
-		return -1, fmt.Errorf("error in NewRequestWithContext: %w", err)
+		return 0, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
 
 	return res, nil
@@ -201,7 +201,7 @@ func (o *OnDiskStateMachine) PrepareSnapshot() (interface{}, error) {
 
 	res, err := doReqWithContext[any](ctx, o.shardID, o.replicaID, o.APPUrl+"/PrepareSnapshot", nil)
 	if err != nil {
-		return -1, fmt.Errorf("error in NewRequestWithContext: %w", err)
+		return 0, fmt.Errorf("error in NewRequestWithContext: %w", err)
 	}
 
 	return res, nil

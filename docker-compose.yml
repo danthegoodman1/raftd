@@ -14,6 +14,8 @@ services:
       - RAFT_PEERS=1=raft-1:9091,2=raft-2:9091,3=raft-3:9091
       - APP_URL=http://localhost:8080
       - RAFT_DIR=/data
+      - DEBUG=1
+      - PRETTY=1
     ports:
       - "19090:9090"  # HTTP
       - "19091:9091"  # Raft
@@ -35,6 +37,8 @@ services:
       - RAFT_PEERS=1=raft-1:9091,2=raft-2:9091,3=raft-3:9091
       - APP_URL=http://localhost:8080
       - RAFT_DIR=/data
+      - DEBUG=1
+      - PRETTY=1
     ports:
       - "29090:9090"
       - "29091:9091"
@@ -56,6 +60,8 @@ services:
       - RAFT_PEERS=1=raft-1:9091,2=raft-2:9091,3=raft-3:9091
       - APP_URL=http://localhost:8080
       - RAFT_DIR=/data
+      - DEBUG=1
+      - PRETTY=1
     ports:
       - "39090:9090"
       - "39091:9091"
