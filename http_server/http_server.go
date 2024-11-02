@@ -57,11 +57,17 @@ func StartHTTPServer(readyPtr *atomic.Uint64, manager *raft.RaftManager) *HTTPSe
 	s.Echo.GET("/hc", s.HealthCheck)
 	s.Echo.GET("/rc", s.ReadinessCheck)
 
-	// todo write record
-	// todo read record
-	// todo request snapshot
-	// todo read snapshot?
-	// todo group management
+	{
+		raftGroup := s.Echo.Group("/raft")
+		raftGroup.GET("/read", ccHandler(s.Lookup))
+		raftGroup.POST("/update", ccHandler(s.Update))
+		raftGroup.GET("/snapshot", ccHandler(s.ReadSnapshot))
+		raftGroup.POST("/snapshot", ccHandler(s.CreateSnapshot))
+
+		// todo raft metadata (node group membership, isleader, etc.)
+
+		// todo raft group management
+	}
 
 	s.Echo.Listener = listener
 	go func() {
