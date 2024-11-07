@@ -193,6 +193,8 @@ If you only need a single writer, then it's fine to have a single shard. However
 
 Add a new replica to a Raft shard. This should be called on the leader node. The shard must already exist on both the initial nodes, and on the node to be recruited.
 
+You may call this before or after the new node starts, but generally best to call as close as possible to boot (e.g. shortly after)
+
 **Request body:**
 ```json
 {
