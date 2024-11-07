@@ -174,11 +174,13 @@ If you are unable to contact raftd (e.g. it has crashed), you should also crash 
 
 You can see the various readiness states in the `ReadinessCheck` function in [http_server.go](http_server/http_server.go).
 
-# Cluster membership management
+# Cluster membership management (WIP)
 
 Every `Replica` must be part of one or more `Shard`. A `Replica` is a running process (instance of raftd), a `Shard` is a specific raft group. A replica can be part of multiple shards.
 
-When the cluster is first boostrapped, the `0` shard is created, and all nodes are bootstrapped to it. You may create subsequent shards with the raft group management endpoints (TODO)
+When the cluster is first bootstrapped, the `0` shard is created, and all nodes are bootstrapped to it. You may create subsequent shards with the raft group management endpoints.
+
+If you only need a single writer, then it's fine to have a single shard. However, once you step into the world of multi-raft, you need to begin to understand how to map your storage keys to raft shards. In a multi-raft scenario, it is advised that you reserve the `0` shard for metadata (e.g. range partition placement) if needed. If you use consistent-hash routing, then you probably don't need that metadata (can just do something like `shard_id = Murmur3(key) % shard_count`).
 
 [//]: # (TODO)
 
