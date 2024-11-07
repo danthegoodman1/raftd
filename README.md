@@ -21,7 +21,9 @@ It manages all the complicated parts of raft like durable log management, log co
     * [`/RecoverFromSnapshot`](#recoverfromsnapshot)
     * [`/Sync` (Optional)](#sync-optional)
   * [Monitoring raftd](#monitoring-raftd)
-* [Cluster membership management](#cluster-membership-management)
+* [Cluster membership management (WIP)](#cluster-membership-management-wip)
+    * [`POST /recruit_replica`](#post-recruit_replica)
+    * [`POST /remove_replica`](#post-remove_replica)
 * [Snapshots](#snapshots)
   * [Reading and writing via the raftd HTTP API - WIP](#reading-and-writing-via-the-raftd-http-api---wip)
 * [Credit and related work](#credit-and-related-work)
@@ -31,6 +33,9 @@ It manages all the complicated parts of raft like durable log management, log co
   * [Consider non-deterministic actions](#consider-non-deterministic-actions)
   * [Tuning snapshotting interval](#tuning-snapshotting-interval)
   * [Controlled SQLite WAL for instant snapshots](#controlled-sqlite-wal-for-instant-snapshots)
+  * [Use DNS names for Raft replicas](#use-dns-names-for-raft-replicas)
+  * [TODO follower reads and eventual consistency](#todo-follower-reads-and-eventual-consistency)
+  * [TODO balancing raft leaders](#todo-balancing-raft-leaders)
 <!-- TOC -->
 
 # Integrating
@@ -286,6 +291,12 @@ Go ahead and look at that post, but the gist of it is:
 It is wise to set automatic snapshotting on an interval (e.g. every 1,000-10,000 records depending on update frequency) to reduce how long recovery will still take.
 
 This could be taken further by implementing a custom Raft log provider that uses the WAL as the log (using a custom WAL VFS), but that's not currently exposed (or suggested). However this could open it up to allowing for non-deterministic commands (e.g. `now()`) in SQL queries because the log would take data after the query executes, not before (e.g. using the SQL statements as the saved records).
+
+## Use DNS names for Raft replicas
+
+Especially with initial members, it becomes a pain if they are truly "lost", as in a node at this address no longer exists. Raft can recover a lost disk, but for convenience of shard management it's expected that these initial members will always be available (at least the quorum not permanently removed).
+
+If you use DNS names for Raft members (e.g. k8s stateful set), it's trivial to point the DNS name to another node and let it recover if you truly lose a specific IP address/node.
 
 ## TODO follower reads and eventual consistency
 
