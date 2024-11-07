@@ -21,6 +21,7 @@ It manages all the complicated parts of raft like durable log management, log co
     * [`/RecoverFromSnapshot`](#recoverfromsnapshot)
     * [`/Sync` (Optional)](#sync-optional)
   * [Monitoring raftd](#monitoring-raftd)
+* [Cluster membership management](#cluster-membership-management)
 * [Snapshots](#snapshots)
   * [Reading and writing via the raftd HTTP API - WIP](#reading-and-writing-via-the-raftd-http-api---wip)
 * [Credit and related work](#credit-and-related-work)
@@ -46,16 +47,16 @@ TODO
 
 # Configuration
 
-| Env var               | Description                                                                                                               | Required/Default                       |
-|-----------------------|---------------------------------------------------------------------------------------------------------------------------|----------------------------------------|
-| `APP_URL`             | Set the URL at which the application API can be reached. Should include protocol and any path prefixes                    | `http://localhost:8080`                |
-| `HTTP_LISTEN_ADDR`    | Listen address for the http server                                                                                        | `:9090`                                |
-| `RAFT_LISTEN_ADDR`    | Listen address for raft clustering. Must be dns:port or ip:port                                                           | `0.0.0.0:9091`                         |
-| `METRICS_LISTEN_ADDR` | Listen address for the prometheus metrics server (see [`internal_http.go`](observability/internal_http.go))               | `:9092`                                |
-| `RAFT_PEERS`          | CSV of Raft peers in `ID=ADDR` format. Example: `1=localhost:8090,2=localhost:8091,3=localhost:8092`                      | Required                               |
-| `NODE_ID`             | Unique integer Node ID of this node >= 1                                                                                  | Required                               |
-| `RAFT_SYNC`           | Whether to call the /Sync endpoint, see optimization below. Set to `1` to enable. Only use if you know what you're doing! | `0`                                    |
-| `RAFT_DIR`            | Local directory where Raft will store log and snapshot data for all nodes (each node has a subdirectory).                 | `_raft` (current executable directory) |
+| Env var                | Description                                                                                                                                                                          | Required/Default                       |
+|------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------|
+| `APP_URL`              | Set the URL at which the application API can be reached. Should include protocol and any path prefixes                                                                               | `http://localhost:8080`                |
+| `HTTP_LISTEN_ADDR`     | Listen address for the http server                                                                                                                                                   | `:9090`                                |
+| `RAFT_LISTEN_ADDR`     | Listen address for raft clustering. Must be dns:port or ip:port                                                                                                                      | `0.0.0.0:9091`                         |
+| `METRICS_LISTEN_ADDR`  | Listen address for the prometheus metrics server (see [`internal_http.go`](observability/internal_http.go))                                                                          | `:9092`                                |
+| `RAFT_INITIAL_MEMBERS` | CSV of initial Raft node members in `ID=ADDR` format. Example: `1=localhost:8090,2=localhost:8091,3=localhost:8092`. **This must not be changed after an initial cluster bootstrap** | Required                               |
+| `NODE_ID`              | Unique integer Node ID of this node >= 1                                                                                                                                             | Required                               |
+| `RAFT_SYNC`            | Whether to call the /Sync endpoint, see optimization below. Set to `1` to enable. Only use if you know what you're doing!                                                            | `0`                                    |
+| `RAFT_DIR`             | Local directory where Raft will store log and snapshot data for all nodes (each node has a subdirectory).                                                                            | `_raft` (current executable directory) |
 
 # Building the API
 
@@ -172,6 +173,45 @@ know if raftd shut down for any reason. It will either return a `500` with the b
 If you are unable to contact raftd (e.g. it has crashed), you should also crash your application.
 
 You can see the various readiness states in the `ReadinessCheck` function in [http_server.go](http_server/http_server.go).
+
+# Cluster membership management
+
+Every `Replica` must be part of one or more `Shard`. A `Replica` is a running process (instance of raftd), a `Shard` is a specific raft group. A replica can be part of multiple shards.
+
+When the cluster is first boostrapped, the `0` shard is created, and all nodes are bootstrapped to it. You may create subsequent shards with the raft group management endpoints (TODO)
+
+[//]: # (TODO)
+
+### `POST /recruit_replica`
+
+Add a new replica to a Raft shard. This should be called on the leader node.
+
+**Request body:**
+```json
+{
+  "ReplicaAddr": "localhost:9091", // Address where the new replica can be reached
+  "ReplicaID": 4,                  // Unique ID for the new replica (uint64)
+  "ShardID": 0                     // ID of the shard to add the replica to (uint64)
+}
+```
+
+**Response:** Empty response with 202 Accepted status code
+
+### `POST /remove_replica`
+
+Remove an existing replica from a Raft shard. This should be called on the leader node.
+
+**Request body:**
+```json
+{
+  "ReplicaID": 4,   // ID of the replica to remove (uint64)
+  "ShardID": 0      // ID of the shard to remove the replica from (uint64)
+}
+```
+
+**Response:** Empty response with 202 Accepted status code
+
+Membership changes are synchornous.
 
 # Snapshots
 

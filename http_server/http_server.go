@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/danthegoodman1/raftd/env"
 	"github.com/danthegoodman1/raftd/raft"
 	"net"
 	"net/http"
@@ -33,7 +34,7 @@ type CustomValidator struct {
 }
 
 func StartHTTPServer(readyPtr *atomic.Uint64, manager *raft.RaftManager) *HTTPServer {
-	listener, err := net.Listen("tcp", utils.HTTPListenAddr)
+	listener, err := net.Listen("tcp", env.HTTPListenAddr)
 	if err != nil {
 		logger.Error().Err(err).Msg("error creating tcp listener, exiting")
 		os.Exit(1)
@@ -65,6 +66,8 @@ func StartHTTPServer(readyPtr *atomic.Uint64, manager *raft.RaftManager) *HTTPSe
 		raftGroup.POST("/snapshot", ccHandler(s.CreateSnapshot))
 
 		// todo raft metadata (node group membership, isleader, etc.)
+		raftGroup.POST("/recruit_replica", ccHandler(s.RecruitReplica))
+		raftGroup.POST("/remove_replica", ccHandler(s.RemoveReplica))
 
 		// todo raft group management
 	}

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/danthegoodman1/raftd/utils"
+	"github.com/danthegoodman1/raftd/env"
 	"github.com/lni/dragonboat/v4/statemachine"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
@@ -29,12 +29,12 @@ type (
 )
 
 func createStateMachine(shardID, replicaID uint64, logger zerolog.Logger, readyPtr *atomic.Uint64) statemachine.IOnDiskStateMachine {
-	childLogger := logger.With().Uint64("NodeID", shardID).Uint64("ReplicaID", replicaID).Str("Service", "RaftStateMachine").Logger()
+	childLogger := logger.With().Uint64("ShardID", shardID).Uint64("ReplicaID", replicaID).Str("Service", "RaftStateMachine").Logger()
 	return &OnDiskStateMachine{
 		shardID:    shardID,
 		replicaID:  replicaID,
-		APPUrl:     utils.ApplicationURL,
-		shouldSync: utils.RaftSync,
+		APPUrl:     env.ApplicationURL,
+		shouldSync: env.RaftSync,
 		logger:     childLogger,
 		readyPtr:   readyPtr,
 	}
