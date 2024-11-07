@@ -191,7 +191,7 @@ If you only need a single writer, then it's fine to have a single shard. However
 
 ### `POST /recruit_replica`
 
-Add a new replica to a Raft shard. This should be called on the leader node.
+Add a new replica to a Raft shard. This should be called on the leader node. The shard must already exist on both the initial nodes, and on the node to be recruited.
 
 **Request body:**
 ```json
