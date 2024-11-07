@@ -59,17 +59,18 @@ func StartHTTPServer(readyPtr *atomic.Uint64, manager *raft.RaftManager) *HTTPSe
 	s.Echo.GET("/rc", s.ReadinessCheck)
 
 	{
+		// Data operations
 		raftGroup := s.Echo.Group("/raft")
 		raftGroup.GET("/read", ccHandler(s.Lookup))
 		raftGroup.POST("/update", ccHandler(s.Update))
 		raftGroup.GET("/snapshot", ccHandler(s.ReadSnapshot))
 		raftGroup.POST("/snapshot", ccHandler(s.CreateSnapshot))
 
-		// todo raft metadata (node group membership, isleader, etc.)
+		// Raft management
 		raftGroup.POST("/recruit_replica", ccHandler(s.RecruitReplica))
 		raftGroup.POST("/remove_replica", ccHandler(s.RemoveReplica))
-
-		// todo raft group management
+		// todo POST /new_shard
+		// todo GET /membership_info
 	}
 
 	s.Echo.Listener = listener
