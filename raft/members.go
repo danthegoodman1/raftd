@@ -12,8 +12,8 @@ type (
 	}
 
 	Member struct {
-		NodeID uint64 `json:"nodeID"`
-		Addr   string `json:"addr"`
+		ReplicaID uint64 `json:"nodeID"`
+		Addr      string `json:"addr"`
 	}
 )
 
@@ -36,13 +36,13 @@ func (rm *RaftManager) GetMembership(ctx context.Context, shard uint64) (*Member
 	for id, node := range membership.Nodes {
 		if id == leader {
 			m.Leader = Member{
-				NodeID: id,
-				Addr:   node,
+				ReplicaID: id,
+				Addr:      node,
 			}
 		}
 		m.Members = append(m.Members, Member{
-			NodeID: id,
-			Addr:   node,
+			ReplicaID: id,
+			Addr:      node,
 		})
 	}
 

@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/danthegoodman1/raftd/env"
 	"github.com/danthegoodman1/raftd/observability"
 	"github.com/danthegoodman1/raftd/raft"
-	"github.com/danthegoodman1/raftd/utils"
 	"net/http"
 	"os"
 	"os/signal"
@@ -24,7 +24,7 @@ func main() {
 
 	prometheusReporter := observability.NewPrometheusReporter()
 	go func() {
-		err := observability.StartInternalHTTPServer(utils.MetricsAPIListenAddr, prometheusReporter)
+		err := observability.StartInternalHTTPServer(env.MetricsAPIListenAddr, prometheusReporter)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal().Err(err).Msg("internal server couldn't start")
 			return

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/danthegoodman1/raftd/env"
 	"github.com/danthegoodman1/raftd/raft"
 	"net"
 	"net/http"
@@ -33,7 +34,7 @@ type CustomValidator struct {
 }
 
 func StartHTTPServer(readyPtr *atomic.Uint64, manager *raft.RaftManager) *HTTPServer {
-	listener, err := net.Listen("tcp", utils.HTTPListenAddr)
+	listener, err := net.Listen("tcp", env.HTTPListenAddr)
 	if err != nil {
 		logger.Error().Err(err).Msg("error creating tcp listener, exiting")
 		os.Exit(1)
@@ -57,11 +58,20 @@ func StartHTTPServer(readyPtr *atomic.Uint64, manager *raft.RaftManager) *HTTPSe
 	s.Echo.GET("/hc", s.HealthCheck)
 	s.Echo.GET("/rc", s.ReadinessCheck)
 
-	// todo write record
-	// todo read record
-	// todo request snapshot
-	// todo read snapshot?
-	// todo group management
+	{
+		// Data operations
+		raftGroup := s.Echo.Group("/raft")
+		raftGroup.GET("/read", ccHandler(s.Lookup))
+		raftGroup.POST("/update", ccHandler(s.Update))
+		raftGroup.GET("/snapshot", ccHandler(s.ReadSnapshot))
+		raftGroup.POST("/snapshot", ccHandler(s.CreateSnapshot))
+
+		// Raft management
+		raftGroup.POST("/recruit_replica", ccHandler(s.RecruitReplica))
+		raftGroup.POST("/remove_replica", ccHandler(s.RemoveReplica))
+		// todo POST /new_shard
+		// todo GET /membership_info
+	}
 
 	s.Echo.Listener = listener
 	go func() {

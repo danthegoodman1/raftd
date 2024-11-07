@@ -3,7 +3,7 @@ package tracing
 import (
 	"context"
 	"fmt"
-	"github.com/danthegoodman1/raftd/utils"
+	"github.com/danthegoodman1/raftd/env"
 	"github.com/rs/zerolog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -18,16 +18,16 @@ import (
 )
 
 var (
-	Tracer = otel.Tracer(utils.TracingServiceName)
+	Tracer = otel.Tracer(env.TracingServiceName)
 )
 
 // InitTracer creates a new OLTP trace provider instance and registers it as global trace provider.
 func InitTracer(ctx context.Context) (tp *trace.TracerProvider, err error) {
 	logger := zerolog.Ctx(ctx)
 	var exporter trace.SpanExporter
-	if utils.OLTPEndpoint != "" {
+	if env.OLTPEndpoint != "" {
 		exporter, err = otlptracegrpc.New(ctx,
-			otlptracegrpc.WithEndpoint(utils.OLTPEndpoint),
+			otlptracegrpc.WithEndpoint(env.OLTPEndpoint),
 			otlptracegrpc.WithInsecure(),
 		)
 		if err != nil {
@@ -50,7 +50,7 @@ func InitTracer(ctx context.Context) (tp *trace.TracerProvider, err error) {
 		trace.WithSampler(trace.AlwaysSample()),
 		trace.WithBatcher(exporter),
 		trace.WithResource(resource.NewSchemaless(
-			semconv.ServiceName(utils.TracingServiceName),
+			semconv.ServiceName(env.TracingServiceName),
 			semconv.HostName(hostname),
 		)),
 	)

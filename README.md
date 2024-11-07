@@ -21,6 +21,7 @@ It manages all the complicated parts of raft like durable log management, log co
     * [`/RecoverFromSnapshot`](#recoverfromsnapshot)
     * [`/Sync` (Optional)](#sync-optional)
   * [Monitoring raftd](#monitoring-raftd)
+* [Cluster membership management](#cluster-membership-management)
 * [Snapshots](#snapshots)
   * [Reading and writing via the raftd HTTP API - WIP](#reading-and-writing-via-the-raftd-http-api---wip)
 * [Credit and related work](#credit-and-related-work)
@@ -46,16 +47,16 @@ TODO
 
 # Configuration
 
-| Env var               | Description                                                                                                               | Required/Default                       |
-|-----------------------|---------------------------------------------------------------------------------------------------------------------------|----------------------------------------|
-| `APP_URL`             | Set the URL at which the application API can be reached. Should include protocol and any path prefixes                    | `http://localhost:8080`                |
-| `HTTP_LISTEN_ADDR`    | Listen address for the http server                                                                                        | `:9090`                                |
-| `RAFT_LISTEN_ADDR`    | Listen address for raft clustering. Must be dns:port or ip:port                                                           | `0.0.0.0:9091`                         |
-| `METRICS_LISTEN_ADDR` | Listen address for the prometheus metrics server (see [`internal_http.go`](observability/internal_http.go))               | `:9092`                                |
-| `RAFT_PEERS`          | CSV of Raft peers in `ID=ADDR` format. Example: `1=localhost:8090,2=localhost:8091,3=localhost:8092`                      | Required                               |
-| `NODE_ID`             | Unique integer Node ID of this node >= 1                                                                                  | Required                               |
-| `RAFT_SYNC`           | Whether to call the /Sync endpoint, see optimization below. Set to `1` to enable. Only use if you know what you're doing! | `0`                                    |
-| `RAFT_DIR`            | Local directory where Raft will store log and snapshot data for all nodes (each node has a subdirectory).                 | `_raft` (current executable directory) |
+| Env var                | Description                                                                                                                                                                          | Required/Default                       |
+|------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------|
+| `APP_URL`              | Set the URL at which the application API can be reached. Should include protocol and any path prefixes                                                                               | `http://localhost:8080`                |
+| `HTTP_LISTEN_ADDR`     | Listen address for the http server                                                                                                                                                   | `:9090`                                |
+| `RAFT_LISTEN_ADDR`     | Listen address for raft clustering. Must be dns:port or ip:port                                                                                                                      | `0.0.0.0:9091`                         |
+| `METRICS_LISTEN_ADDR`  | Listen address for the prometheus metrics server (see [`internal_http.go`](observability/internal_http.go))                                                                          | `:9092`                                |
+| `RAFT_INITIAL_MEMBERS` | CSV of initial Raft node members in `ID=ADDR` format. Example: `1=localhost:8090,2=localhost:8091,3=localhost:8092`. **This must not be changed after an initial cluster bootstrap** | Required                               |
+| `NODE_ID`              | Unique integer Node ID of this node >= 1                                                                                                                                             | Required                               |
+| `RAFT_SYNC`            | Whether to call the /Sync endpoint, see optimization below. Set to `1` to enable. Only use if you know what you're doing!                                                            | `0`                                    |
+| `RAFT_DIR`             | Local directory where Raft will store log and snapshot data for all nodes (each node has a subdirectory).                                                                            | `_raft` (current executable directory) |
 
 # Building the API
 
@@ -173,6 +174,47 @@ If you are unable to contact raftd (e.g. it has crashed), you should also crash 
 
 You can see the various readiness states in the `ReadinessCheck` function in [http_server.go](http_server/http_server.go).
 
+# Cluster membership management (WIP)
+
+Every `Replica` must be part of one or more `Shard`. A `Replica` is a running process (instance of raftd), a `Shard` is a specific raft group. A replica can be part of multiple shards.
+
+When the cluster is first bootstrapped, the `0` shard is created, and all nodes are bootstrapped to it. You may create subsequent shards with the raft group management endpoints.
+
+If you only need a single writer, then it's fine to have a single shard. However, once you step into the world of multi-raft, you need to begin to understand how to map your storage keys to raft shards. In a multi-raft scenario, it is advised that you reserve the `0` shard for metadata (e.g. range partition placement) if needed. If you use consistent-hash routing, then you probably don't need that metadata (can just do something like `shard_id = Murmur3(key) % shard_count`).
+
+[//]: # (TODO)
+
+### `POST /recruit_replica`
+
+Add a new replica to a Raft shard. This should be called on the leader node.
+
+**Request body:**
+```json
+{
+  "ReplicaAddr": "localhost:9091", // Address where the new replica can be reached
+  "ReplicaID": 4,                  // Unique ID for the new replica (uint64)
+  "ShardID": 0                     // ID of the shard to add the replica to (uint64)
+}
+```
+
+**Response:** Empty response with 202 Accepted status code
+
+### `POST /remove_replica`
+
+Remove an existing replica from a Raft shard. This should be called on the leader node.
+
+**Request body:**
+```json
+{
+  "ReplicaID": 4,   // ID of the replica to remove (uint64)
+  "ShardID": 0      // ID of the shard to remove the replica from (uint64)
+}
+```
+
+**Response:** Empty response with 202 Accepted status code
+
+Membership changes are synchornous.
+
 # Snapshots
 
 Snapshots are only used when a new node joins the cluster, or a replica is sufficiently far behind that it cannot catch up purely via the log.
@@ -244,3 +286,13 @@ Go ahead and look at that post, but the gist of it is:
 It is wise to set automatic snapshotting on an interval (e.g. every 1,000-10,000 records depending on update frequency) to reduce how long recovery will still take.
 
 This could be taken further by implementing a custom Raft log provider that uses the WAL as the log (using a custom WAL VFS), but that's not currently exposed (or suggested). However this could open it up to allowing for non-deterministic commands (e.g. `now()`) in SQL queries because the log would take data after the query executes, not before (e.g. using the SQL statements as the saved records).
+
+## TODO follower reads and eventual consistency
+
+When reading from a follower, only f/N reads would be inconsistent.
+
+For example if you have 3 nodes (N=3), and a fault tolerance of 1 (f=1) then only 1/3 reads would be inconsistent if you chose a random node.
+
+TODO support bounded staleness reads? max staleness?
+
+## TODO balancing raft leaders

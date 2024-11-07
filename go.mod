@@ -10,6 +10,7 @@ require (
 	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/prometheus/client_golang v1.20.5
 	github.com/rs/zerolog v1.33.0
+	github.com/samber/lo v1.47.0
 	github.com/segmentio/ksuid v1.0.4
 	github.com/uber-go/tally/v4 v4.1.16
 	go.opentelemetry.io/otel v1.31.0
@@ -68,7 +69,6 @@ require (
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
-	github.com/samber/lo v1.47.0 // indirect
 	github.com/sean-/seed v0.0.0-20170313163322-e2103e2c3529 // indirect
 	github.com/twmb/murmur3 v1.1.5 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
