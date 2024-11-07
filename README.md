@@ -286,3 +286,13 @@ Go ahead and look at that post, but the gist of it is:
 It is wise to set automatic snapshotting on an interval (e.g. every 1,000-10,000 records depending on update frequency) to reduce how long recovery will still take.
 
 This could be taken further by implementing a custom Raft log provider that uses the WAL as the log (using a custom WAL VFS), but that's not currently exposed (or suggested). However this could open it up to allowing for non-deterministic commands (e.g. `now()`) in SQL queries because the log would take data after the query executes, not before (e.g. using the SQL statements as the saved records).
+
+## TODO follower reads and eventual consistency
+
+When reading from a follower, only f/N reads would be inconsistent.
+
+For example if you have 3 nodes (N=3), and a fault tolerance of 1 (f=1) then only 1/3 reads would be inconsistent if you chose a random node.
+
+TODO support bounded staleness reads? max staleness?
+
+## TODO balancing raft leaders
