@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/danthegoodman1/raftd/syncx"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -43,7 +44,7 @@ var (
 	ErrInvalidPeer = errors.New("invalid peer")
 )
 
-func NewRaftManager(readyPtr *atomic.Uint64) (*RaftManager, error) {
+func NewRaftManager(readyMap *syncx.Map[uint64, bool]) (*RaftManager, error) {
 	logger := gologger.NewLogger().With().Str("Service", "RaftManager").Logger()
 
 	// Create raft storage directory if it doesn't exist
@@ -85,8 +86,8 @@ func NewRaftManager(readyPtr *atomic.Uint64) (*RaftManager, error) {
 		return nil, fmt.Errorf("error parsing application url: %w", err)
 	}
 
-	// TODO poll application url to see if it's ready
-	readyPtr.Store(1)
+	// TODO when a shard is started, mark it ready
+	readyMap.Store(0, true)
 
 	// TODO allow customization of configuration options (esp snapshot entries)
 	rc := config.Config{
@@ -140,7 +141,7 @@ func NewRaftManager(readyPtr *atomic.Uint64) (*RaftManager, error) {
 
 	// TODO recover each shard
 	err = nh.StartOnDiskReplica(initialMembers, join, func(shardID uint64, replicaID uint64) statemachine.IOnDiskStateMachine {
-		return createStateMachine(shardID, replicaID, logger, readyPtr)
+		return createStateMachine(shardID, replicaID, logger, readyMap)
 	}, rc)
 	if err != nil {
 		return nil, fmt.Errorf("error in StartOnDiskCluster: %w", err)
@@ -149,7 +150,7 @@ func NewRaftManager(readyPtr *atomic.Uint64) (*RaftManager, error) {
 	rm := &RaftManager{
 		nodeHost: nh,
 		logger:   logger,
-		Ready:    readyPtr,
+		Ready:    readyMap,
 	}
 
 	return rm, nil

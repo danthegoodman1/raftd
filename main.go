@@ -6,10 +6,10 @@ import (
 	"github.com/danthegoodman1/raftd/env"
 	"github.com/danthegoodman1/raftd/observability"
 	"github.com/danthegoodman1/raftd/raft"
+	"github.com/danthegoodman1/raftd/syncx"
 	"net/http"
 	"os"
 	"os/signal"
-	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -31,16 +31,15 @@ func main() {
 		}
 	}()
 
-	readyPtr := &atomic.Uint64{}
-	readyPtr.Store(0)
+	readyMap := syncx.NewMap[uint64, bool]()
 
-	raftManager, err := raft.NewRaftManager(readyPtr)
+	raftManager, err := raft.NewRaftManager(&readyMap)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to create new raft manager")
 		return
 	}
 
-	httpServer := http_server.StartHTTPServer(readyPtr, raftManager)
+	httpServer := http_server.StartHTTPServer(&readyMap, raftManager)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)

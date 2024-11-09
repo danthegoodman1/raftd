@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"github.com/danthegoodman1/raftd/env"
 	"github.com/danthegoodman1/raftd/raft"
+	"github.com/danthegoodman1/raftd/syncx"
 	"net"
 	"net/http"
 	"os"
-	"sync/atomic"
 	"time"
 
 	"github.com/danthegoodman1/raftd/gologger"
@@ -26,14 +26,14 @@ var logger = gologger.NewLogger().With().Str("Service", "HTTPServer").Logger()
 type HTTPServer struct {
 	Echo    *echo.Echo
 	manager *raft.RaftManager
-	Ready   *atomic.Uint64
+	Ready   *syncx.Map[uint64, bool]
 }
 
 type CustomValidator struct {
 	validator *validator.Validate
 }
 
-func StartHTTPServer(readyPtr *atomic.Uint64, manager *raft.RaftManager) *HTTPServer {
+func StartHTTPServer(readyMap *syncx.Map[uint64, bool], manager *raft.RaftManager) *HTTPServer {
 	listener, err := net.Listen("tcp", env.HTTPListenAddr)
 	if err != nil {
 		logger.Error().Err(err).Msg("error creating tcp listener, exiting")
@@ -41,7 +41,7 @@ func StartHTTPServer(readyPtr *atomic.Uint64, manager *raft.RaftManager) *HTTPSe
 	}
 	s := &HTTPServer{
 		Echo:  echo.New(),
-		Ready: readyPtr,
+		Ready: readyMap,
 	}
 	s.Echo.HideBanner = true
 	s.Echo.HidePort = true
@@ -113,6 +113,7 @@ func (s *HTTPServer) HealthCheck(c echo.Context) error {
 }
 
 func (s *HTTPServer) ReadinessCheck(c echo.Context) error {
+	// TODO check all shards for readiness
 	readyCode := s.Ready.Load()
 	switch readyCode {
 	case 0:

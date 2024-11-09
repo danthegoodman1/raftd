@@ -7,12 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/danthegoodman1/raftd/env"
+	"github.com/danthegoodman1/raftd/syncx"
 	"github.com/lni/dragonboat/v4/statemachine"
 	"github.com/rs/zerolog"
 	"github.com/samber/lo"
 	"io"
 	"net/http"
-	"sync/atomic"
 	"time"
 )
 
@@ -24,11 +24,11 @@ type (
 		shouldSync bool
 		closed     bool
 		logger     zerolog.Logger
-		readyPtr   *atomic.Uint64
+		readyMap   *syncx.Map[uint64, bool]
 	}
 )
 
-func createStateMachine(shardID, replicaID uint64, logger zerolog.Logger, readyPtr *atomic.Uint64) statemachine.IOnDiskStateMachine {
+func createStateMachine(shardID, replicaID uint64, logger zerolog.Logger, readyMap *syncx.Map[uint64, bool]) statemachine.IOnDiskStateMachine {
 	childLogger := logger.With().Uint64("ShardID", shardID).Uint64("ReplicaID", replicaID).Str("Service", "RaftStateMachine").Logger()
 	return &OnDiskStateMachine{
 		shardID:    shardID,
@@ -36,7 +36,7 @@ func createStateMachine(shardID, replicaID uint64, logger zerolog.Logger, readyP
 		APPUrl:     env.ApplicationURL,
 		shouldSync: env.RaftSync,
 		logger:     childLogger,
-		readyPtr:   readyPtr,
+		readyMap:   readyMap,
 	}
 }
 
@@ -278,6 +278,7 @@ func (o *OnDiskStateMachine) Close() error {
 	// We do nothing here, since we want to force the application to be resilient to crashes
 	o.logger.Info().Msg("calling Close")
 	o.closed = true
-	o.readyPtr.Store(2)
+	// TODO for each shard, make not ready
+	o.readyMap.Store(0, false)
 	return nil
 }
