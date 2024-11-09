@@ -113,19 +113,24 @@ func (s *HTTPServer) HealthCheck(c echo.Context) error {
 }
 
 func (s *HTTPServer) ReadinessCheck(c echo.Context) error {
-	// TODO check all shards for readiness
-	readyCode := s.Ready.Load()
-	switch readyCode {
-	case 0:
-		return c.String(http.StatusInternalServerError, "not ready")
-	case 1:
+	// TODO check all shards for readiness, maybe we make each item have a status code like this instead of boolean?
+	// readyCode := s.Ready.Load()
+	// switch readyCode {
+	// case 0:
+	// 	return c.String(http.StatusInternalServerError, "not ready")
+	// case 1:
+	// 	return c.String(http.StatusOK, "ready")
+	// case 2:
+	// 	return c.String(http.StatusInternalServerError, "shut down")
+	// default:
+	// 	return c.String(http.StatusInternalServerError, fmt.Sprintf("unknown status code %d", readyCode))
+	// }
+
+	if ready, ok := s.Ready.Load(0); ok && ready {
 		return c.String(http.StatusOK, "ready")
-	case 2:
-		return c.String(http.StatusInternalServerError, "shut down")
-	default:
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("unknown status code %d", readyCode))
 	}
 
+	return c.String(http.StatusServiceUnavailable, "not ready")
 }
 
 func (s *HTTPServer) Shutdown(ctx context.Context) error {

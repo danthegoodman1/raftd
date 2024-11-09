@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"time"
 
 	"github.com/danthegoodman1/raftd/utils"
@@ -31,7 +30,7 @@ type (
 	RaftManager struct {
 		nodeHost *dragonboat.NodeHost
 		logger   zerolog.Logger
-		Ready    *atomic.Uint64
+		Ready    *syncx.Map[uint64, bool]
 	}
 
 	raftReplicaStatus struct {
